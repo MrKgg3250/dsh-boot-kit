@@ -34,6 +34,10 @@ import {
   preflight,
   reconcile,
   report,
+  revertBundles,
+  revertReport,
+  revertUserLayer,
+  uninstall,
   verify,
   writeBinary,
   writePnpmFlags,
@@ -60,6 +64,7 @@ Options
   --source <npm|local> where dsh-skin-boot-sync comes from (default: npm)
   --repo-root <path>   repository root, required with --source local
   --with-widget        also install dsh-whale-widget (it stays switched off)
+  --revert             undo what this kit installed, then exit
   --dry-run            print what would change, write nothing, run no installs
   --force              install even while the desktop app is running
   -h, --help           this text
@@ -80,6 +85,7 @@ function parseArgs(argv) {
     withWidget: false,
     dryRun: false,
     force: false,
+    revert: false,
     help: false,
     version: false,
   }
@@ -99,6 +105,7 @@ function parseArgs(argv) {
       case '--source': opts.source = next(); break
       case '--repo-root': opts.repoRoot = next(); break
       case '--with-widget': opts.withWidget = true; break
+      case '--revert': opts.revert = true; break
       case '--dry-run': opts.dryRun = true; break
       case '--force': opts.force = true; break
       case '-h': case '--help': opts.help = true; break
@@ -184,9 +191,20 @@ async function main(argv) {
 
   const outcomes = {}
   try {
-    say('  1/7 preflight')
+    say(opts.revert ? '  preflight' : '  1/7 preflight')
     const pre = await preflight(ctx)
     for (const note of pre.notes) warn(note)
+
+    if (opts.revert) {
+      say('  revert  unregistering bundle rows')
+      outcomes.bundles = revertBundles(ctx)
+      say('  revert  re-enabling opt-out rows')
+      outcomes.patch = revertUserLayer(ctx, plan)
+      say('  revert  removing packages')
+      outcomes.packages = await uninstall(ctx, plan)
+      revertReport(ctx, outcomes)
+      return 0
+    }
 
     say('  2/7 pnpm flags')
     outcomes.pnpmFlags = writePnpmFlags(ctx)

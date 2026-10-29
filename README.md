@@ -63,6 +63,16 @@ npx dsh-boot-kit --dry-run
 第 3 步和第 5 步是这套东西存在的理由，理由写在
 [docs/pitfalls.md](docs/pitfalls.md)。
 
+想撤销：
+
+```bash
+npx dsh-boot-kit --revert --dry-run   # 先看计划
+npx dsh-boot-kit --revert
+```
+
+它按意图反做（删掉本工具登记的行和禁用行、卸载本工具装的包），不还原备份——
+备份可能早于你自己的编辑。详见 [docs/install.md](docs/install.md#回滚)。
+
 ---
 
 ## 为什么不是一个插件

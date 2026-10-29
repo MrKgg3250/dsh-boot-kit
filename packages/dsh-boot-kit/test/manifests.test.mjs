@@ -8,6 +8,8 @@ import {
   ensureStrictDepBuildsFalse,
   hasRowFor,
   missingBundleRows,
+  removeBundleRows,
+  removeDisableRow,
 } from '../lib/manifests.mjs'
 
 const manifest = (bundles, dependencies) => ({
@@ -141,4 +143,36 @@ test('compareVersions orders prereleases below the release', () => {
   assert.equal(compareVersions('0.2.1', '0.2.1-rc.3'), 1)
   assert.equal(compareVersions('0.2.0', '0.2.1-rc.3'), -1)
   assert.equal(compareVersions('0.2.1-rc.3', '0.2.1-rc.3'), 0)
+})
+
+test('removeBundleRows drops exactly the rows it is given', () => {
+  const profile = manifest(
+    ['@deepseek-ai/dsh-base', 'dsh-skin-boot-sync', 'dshmarket', '@linxin666/dsh-web-all'],
+    {},
+  )
+  const removed = removeBundleRows(profile, ['dsh-skin-boot-sync', '@linxin666/dsh-web-all'])
+  assert.deepEqual(removed, ['dsh-skin-boot-sync', '@linxin666/dsh-web-all'])
+  assert.deepEqual(profile.dsh.profile.bundles, ['@deepseek-ai/dsh-base', 'dshmarket'])
+})
+
+test('removeBundleRows is a no-op when nothing matches', () => {
+  const profile = manifest(['@deepseek-ai/dsh-base'], {})
+  assert.deepEqual(removeBundleRows(profile, ['dsh-skin-boot-sync']), [])
+  assert.deepEqual(profile.dsh.profile.bundles, ['@deepseek-ai/dsh-base'])
+})
+
+test('removeDisableRow takes back exactly the block it wrote', () => {
+  const written = appendDisableRow('- id: ui-chat\n  name: x\n', 'web-ui-pet').text
+  const { text, removed } = removeDisableRow(written, 'web-ui-pet')
+  assert.equal(removed, true)
+  assert.equal(text.trim(), '- id: ui-chat\n  name: x', 'the rest of the file is untouched')
+  assert.equal(removeDisableRow(text, 'web-ui-pet').removed, false, 'idempotent')
+})
+
+test('removeDisableRow leaves a hand-written disable row alone', () => {
+  // No marker: the user wrote this one, so a revert has no business deleting it.
+  const text = '- id: web-ui-pet\n  disabled: true\n'
+  const result = removeDisableRow(text, 'web-ui-pet')
+  assert.equal(result.removed, false)
+  assert.equal(result.text, text)
 })

@@ -22,6 +22,7 @@ npx dsh-boot-kit               # 装（默认 --tier full）
 --source <npm|local>         本插件的来源（默认 npm）
 --repo-root <path>           --source local 时必填
 --with-widget                额外安装 dsh-whale-widget（保持关闭）
+--revert                     撤销本工具装的东西，然后退出
 --dry-run                    只打印，不写文件、不跑安装
 --force                      桌面端在跑也继续（可能被应用覆盖写）
 ```
@@ -67,15 +68,25 @@ npx dsh-boot-kit               # 装（默认 --tier full）
 | `E_PACKAGE_NOT_FOUND` | 某个包解析不到 | 看提示里的包名 |
 | `E_GITHUB_DOWNLOAD` | 拿不到启动动画 tarball | 手动下载放到提示的路径 |
 | `E_VERIFY` | 装完但校验不通过 | 按列出的问题修，别重启 |
+| `E_UNINSTALL_FAILED` | `--revert` 卸载失败 | 看提示；manifest 里的行已经先清掉了，重跑即可 |
 
 ---
 
 ## 回滚
 
-每一步写文件前都会留 `*.bak-<时间戳>`。手工回滚：
+```bash
+npx dsh-boot-kit --revert           # 先看计划
+npx dsh-boot-kit --revert --dry-run # 只看要做什么
+```
 
-1. 从 `package.json` 的 `dsh.profile.bundles` 删掉对应行
-2. 从 `cordis.patch.yml` 删掉带注释的那两行
-3. `dsh plugin --profile <name> remove <包名>`
+`--revert` 做的是**按意图的反操作**，不是还原备份：
 
-`--tier full` 装的 `@linxin666/dsh-web-all` 有 24 个子包，一起卸载即可。
+1. 从 `dsh.profile.bundles` 删掉本套工具登记的那些行（别人加的、你自己加的都不动）
+2. 删掉带 `# Disabled by dsh-boot-kit` 注释的那段（手写的同样形状的删除行不动）
+3. `dsh plugin --profile <name> remove` 掉本工具装的包
+
+不还原备份是刻意的：备份可能早于你自己的编辑，还原上去会**静默丢掉你后来的改动**。
+
+`*.bak-<时间戳>` 只是兜底，不会被自动使用。需要手工回退时它在那儿。
+
+卸载会连 `@linxin666/dsh-web-all` 和它 24 个子包一起移除；皮肤本身在皮肤中心，不受影响。

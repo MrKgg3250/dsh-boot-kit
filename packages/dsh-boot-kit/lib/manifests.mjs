@@ -168,3 +168,49 @@ export function compareVersions(a, b) {
   }
   return 0
 }
+
+/** Comment this installer writes in front of every row it disables. */
+export const DISABLE_MARKER = '# Disabled by dsh-boot-kit'
+
+/**
+ * Drop `names` from `dsh.profile.bundles`, in place, and report what was there.
+ *
+ * Only the rows handed in are touched: other bundles may have been added by the
+ * user or another installer, and a revert must not take them with it.
+ */
+export function removeBundleRows(manifest, names) {
+  const wanted = new Set(names || [])
+  const current = readBundles(manifest)
+  const removed = current.filter((name) => wanted.has(name))
+  if (removed.length > 0) {
+    manifest.dsh.profile.bundles = current.filter((name) => !wanted.has(name))
+  }
+  return removed
+}
+
+/**
+ * Remove the three lines (marker, `- id:`, `disabled: true`) this installer
+ * wrote for one id.
+ *
+ * Contiguous match only. The row was written as one block, so if the user has
+ * since moved or re-indented it, leaving it alone is the safe answer — the
+ * caller reports "not found" instead of guessing at their file.
+ */
+export function removeDisableRow(text, id) {
+  const lines = String(text || '').split('\n')
+  const out = []
+  let removed = false
+  const rowPattern = new RegExp(`^-\\s*id:\\s*${escapeRegExp(id)}\\s*$`)
+  for (let i = 0; i < lines.length; i += 1) {
+    const isMarker = lines[i].trim().startsWith(DISABLE_MARKER)
+    const isRow = lines[i + 1] !== undefined && rowPattern.test(lines[i + 1].trim())
+    const isEnabled = lines[i + 2] !== undefined && /^\s+disabled:\s*true\s*$/.test(lines[i + 2])
+    if (isMarker && isRow && isEnabled) {
+      i += 2
+      removed = true
+      continue
+    }
+    out.push(lines[i])
+  }
+  return { text: out.join('\n'), removed }
+}

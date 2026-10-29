@@ -1,0 +1,47 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: node ${{ matrix.node }} / ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        node: [22, 24]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+
+      # No install step: both packages are dependency-free on purpose, so the
+      # tests run straight from a checkout. If that ever stops being true, this
+      # is the line that has to change.
+      - name: runtime plugin tests
+        run: node --test packages/dsh-skin-boot-sync/test/
+
+      - name: installer tests
+        run: node --test packages/dsh-boot-kit/test/
+
+      - name: cli smoke test
+        run: node packages/dsh-boot-kit/bin.mjs --help
+
+      - name: bad usage still exits 2
+        shell: bash
+        run: |
+          set +e
+          node packages/dsh-boot-kit/bin.mjs --tier nope
+          code=$?
+          echo "exit=$code"
+          test "$code" -eq 2

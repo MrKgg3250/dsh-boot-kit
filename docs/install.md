@@ -76,10 +76,15 @@ npx dsh-boot-kit               # 真装
 
 ## 回滚
 
-装之前每个被改的文件都会留一份 `*.bak-<时间戳>`。手工回滚三步：
+```bash
+npx dsh-boot-kit --revert --dry-run   # 先看计划
+npx dsh-boot-kit --revert             # 真回滚
+```
 
-1. 从 `package.json` 的 `dsh.profile.bundles` 删掉对应行
-2. 从 `cordis.patch.yml` 删掉带 `# Disabled by dsh-boot-kit` 注释的那两行
-3. `dsh plugin --profile <name> remove <包名>`
+它按**意图**反做，而不是还原备份：删掉本工具登记进 `dsh.profile.bundles` 的行、
+删掉带 `# Disabled by dsh-boot-kit` 注释的那段、卸载本工具装的包。
 
-`--tier full` 装的 `@linxin666/dsh-web-all` 带 24 个子包，一起卸载即可。
+不还原备份是刻意的 —— 备份可能早于你自己的编辑，还原上去会静默丢掉后来的改动。
+每个被改过的文件旁边仍留着 `*.bak-<时间戳>`，需要手工比对时它在那儿。
+
+皮肤、以及你在插件面板里手动改过的设置，都不在回滚范围内。

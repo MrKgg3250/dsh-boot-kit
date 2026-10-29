@@ -12,6 +12,8 @@ import {
   ensureStrictDepBuildsFalse,
   missingBundleRows,
   readBundles,
+  removeBundleRows,
+  removeDisableRow,
 } from './manifests.mjs'
 import {
   inspectPackage,
@@ -302,7 +304,7 @@ export function report(ctx, outcomes) {
   ctx.log(lines.join('\n'))
 }
 
-/** Copy a file next to itself before an edit, so `--revert` has something to work with. */
+/** Copy a file next to itself before an edit, so a mistake is one copy away. */
 export function backup(file) {
   if (!existsSync(file)) return null
   const stamp = new Date().toISOString().replace(/[:.]/g, '-')
@@ -314,6 +316,89 @@ export function backup(file) {
 export function writeBinary(ctx, file, buffer) {
   if (ctx.dryRun) return
   writeFileSync(file, buffer)
+}
+
+// ── revert ──────────────────────────────────────────────────────────────────
+//
+// The inverse of install, done by intent rather than by restoring a backup: a
+// backup may predate the user's own edits, and reverting onto it would silently
+// discard them. Every step here removes exactly what this kit added.
+
+export function revertBundles(ctx) {
+  const manifest = readJson(ctx.paths.manifestPath, null)
+  if (!manifest) throw new KitError('E_NO_PROFILE', 'profile package.json is unreadable')
+
+  const removed = removeBundleRows(manifest, plannedNames(ctx.plan))
+  if (removed.length === 0) return { changed: false }
+
+  if (ctx.dryRun) {
+    ctx.log(`[dry-run] would unregister: ${removed.join(', ')}`)
+    return { changed: true, note: removed.join(', ') }
+  }
+  ctx.backup(ctx.paths.manifestPath)
+  ctx.writeJson(ctx.paths.manifestPath, manifest)
+  ctx.log(`unregistered: ${removed.join(', ')}`)
+  return { changed: true, note: removed.join(', ') }
+}
+
+export function revertUserLayer(ctx, plan) {
+  const file = ctx.paths.userPatchPath
+  let text = readText(file, '')
+  const reverted = []
+
+  for (const row of plan.disables) {
+    const result = removeDisableRow(text, row.id)
+    if (result.removed) reverted.push(row.id)
+    text = result.text
+  }
+
+  if (reverted.length === 0) return { changed: false }
+  if (ctx.dryRun) {
+    ctx.log(`[dry-run] would re-enable: ${reverted.join(', ')}`)
+    return { changed: true, note: reverted.join(', ') }
+  }
+  ctx.backup(file)
+  ctx.write(file, text)
+  ctx.log(`re-enabled: ${reverted.join(', ')}`)
+  return { changed: true, note: reverted.join(', ') }
+}
+
+export async function uninstall(ctx, plan) {
+  const names = plannedNames(ctx.plan).filter((name) => inspectPackage(ctx.paths.nodeModules, name))
+  if (names.length === 0) return { changed: false }
+
+  const args = ['plugin', '--profile', ctx.paths.profile, 'remove', ...names]
+  if (ctx.dryRun) {
+    ctx.log(`[dry-run] ${ctx.cli} ${args.join(' ')}`)
+    return { changed: true, note: names.join(', ') }
+  }
+
+  const result = await ctx.run(ctx.cli, args)
+  if (!result.ok) {
+    throw new KitError(
+      'E_UNINSTALL_FAILED',
+      'dsh plugin remove failed',
+      `${result.stdout}\n${result.stderr}`.trim().split('\n').slice(-8).join('\n'),
+    )
+  }
+  ctx.log(`removed: ${names.join(', ')}`)
+  return { changed: true, note: names.join(', ') }
+}
+
+export function revertReport(ctx, outcomes) {
+  const lines = ['', '  done.', '']
+  for (const key of Object.keys(outcomes)) {
+    const value = outcomes[key]
+    lines.push(value && value.changed ? `    ~ ${key}: ${value.note || 'reverted'}` : `    · ${key}: nothing to revert`)
+  }
+  lines.push('')
+  lines.push('  Not touched by a revert:')
+  lines.push('    · your skins (skin center) and any plugin settings you changed by hand')
+  lines.push('    · the *.bak-<timestamp> copies this kit left next to the files it edited')
+  lines.push('')
+  lines.push('  Fully quit DeepSeek Harness and open it again to finish.')
+  lines.push('')
+  ctx.log(lines.join('\n'))
 }
 
 export { writeText }

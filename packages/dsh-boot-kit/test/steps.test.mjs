@@ -4,7 +4,16 @@ import { mkdtempSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 
-import { patchUserLayer, reconcile, verify, writePnpmFlags } from '../lib/steps.mjs'
+import {
+  patchUserLayer,
+  reconcile,
+  revertBundles,
+  revertUserLayer,
+  uninstall,
+  verify,
+  writePnpmFlags,
+} from '../lib/steps.mjs'
+import { readJson } from '../lib/context.mjs'
 import { planFor } from '../lib/specs.mjs'
 
 function makeProfile() {
@@ -171,4 +180,38 @@ test('verify does not fail a dry run over packages it never installed', () => {
   ctx.dryRun = true
   const { errors } = verify(ctx)
   assert.deepEqual(errors, [], 'a dry run installs nothing by design')
+})
+
+test('revert puts the profile back the way it started', () => {
+  const { paths } = makeProfile()
+  fakePackage(paths, 'dsh-skin-boot-sync', bundlePatch('dsh-skin-boot-sync'))
+  fakePackage(paths, '@linxin666/dsh-pet', bundlePatch('web-ui-pet'))
+  const plan = planFor({ tier: 'full' })
+  const ctx = makeCtx(paths, plan)
+  const before = readJson(paths.manifestPath).dsh.profile.bundles
+
+  reconcile(ctx)
+  patchUserLayer(ctx, plan)
+  assert.deepEqual(readJson(paths.manifestPath).dsh.profile.bundles, [...before, 'dsh-skin-boot-sync'])
+  assert.match(readFileSync(paths.userPatchPath, 'utf8'), /web-ui-pet/)
+
+  assert.equal(revertBundles(ctx).changed, true)
+  assert.equal(revertUserLayer(ctx, plan).changed, true)
+
+  assert.deepEqual(readJson(paths.manifestPath).dsh.profile.bundles, before)
+  assert.equal(readFileSync(paths.userPatchPath, 'utf8').trim(), '', 'the block leaves no trace')
+})
+
+test('revert is a no-op on a profile this kit never touched', () => {
+  const { paths } = makeProfile()
+  const ctx = makeCtx(paths, planFor({ tier: 'minimal' }))
+  assert.equal(revertBundles(ctx).changed, false)
+  assert.equal(revertUserLayer(ctx, planFor({ tier: 'minimal' })).changed, false)
+})
+
+test('uninstall skips packages that are not installed', async () => {
+  const { paths } = makeProfile()
+  const ctx = makeCtx(paths, planFor({ tier: 'minimal' }))
+  const result = await uninstall(ctx, ctx.plan)
+  assert.equal(result.changed, false, 'nothing to remove means no pnpm run at all')
 })
