@@ -70,6 +70,12 @@ if exist "%HOME_DIR%\profiles\desktop\package.json"  set "PROFILES=!PROFILES! de
 if not defined PROFILES goto no_profile
 echo   [2/4] 检测到 profile：!PROFILES!
 
+REM --- 安装前清理旧的 URL 依赖（放在选模式之前，Q/S/T 都要过这一步）---
+REM 旧版 install.cmd（Release v1.0.0 附件那份）把包名装成了 GitHub URL；只要
+REM package.json 里留着这种 spec，以后每次 pnpm 操作都会去 HEAD 那些地址，
+REM GitHub 一抖就是 ECONNRESET/ETIMEDOUT 重试循环。先删掉再装本地包，旧机器自愈。
+for %%P in (!PROFILES!) do call :cleanup_urls %%P
+
 REM --- 选模式 ----------------------------------------------------------------
 echo.
 choice /C QTS /N /M "  [Q] 启动动画+皮肤同步（推荐，离线）  [T] 全套含主题（需 npm）  [S] 只装皮肤同步 : "
@@ -130,6 +136,13 @@ REM ---------------------------------------------------------------------------
 :try_dsh
 if defined DSH_CMD exit /b 0
 if exist "%~1\resources\runtime\cli\bin\dsh.cmd" set "DSH_CMD=%~1\resources\runtime\cli\bin\dsh.cmd"
+exit /b 0
+
+:cleanup_urls
+powershell -NoProfile -Command "$f='%HOME_DIR%\profiles\%~1\package.json'; if (-not (Test-Path $f)) { exit 1 }; $t=[IO.File]::ReadAllText($f); if ($t -match 'github\.com/(MrKgg3250|6shenhonghong9)') { exit 0 } else { exit 1 }"
+if errorlevel 1 exit /b 0
+echo   清理旧版安装器留下的网络依赖（%~1）...
+call "!DSH_CMD!" plugin --profile %~1 remove dsh-skin-boot-sync dsh-startup-screen
 exit /b 0
 
 :no_local
