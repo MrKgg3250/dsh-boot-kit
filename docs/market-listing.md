@@ -41,8 +41,18 @@ DSH 的市场目录是 `@linxin666/dsh-client-ui-community-plugins` 里的 `comm
 
 ## 提交前的前置条件
 
-**先发布到 npm**（见 [publish.md](publish.md)）。条目里的 `npm` 字段指向包名，包不存在
-的话，装的人会直接失败 —— 这比不收录更糟。
+首选：**先发布到 npm**（见 [publish.md](publish.md)）。条目里的 `npm` 字段指向包名，
+包不存在的话，装的人会直接失败 —— 这比不收录更糟。
+
+还没上 npm 时的替代写法（目录里 148 条有 31 条没有 `npm` 字段，靠 `repo` 安装）：
+
+- 删掉 `"npm": "dsh-skin-boot-sync"` 这一行
+- `"repo"` 指到子包路径：`https://github.com/MrKgg3250/dsh-boot-kit/tree/main/packages/dsh-skin-boot-sync`
+- `description` 开头加一句「从 Release 的 tgz 安装」，并把 tarball 链接放进 README
+
+> 子包路径的写法在 dshmarket 的发现缓存里有先例
+> （`HwFee/HwFee-dsh/tree/master/plugins/genui` 这类键）。**提交 PR 前先在自己
+> 机器上按这个路径装一次**，确认能装再提，别把没验证过的安装方式写进目录。
 
 ---
 

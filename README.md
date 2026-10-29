@@ -33,7 +33,14 @@ npx dsh-boot-kit
 >
 > ```bash
 > git clone https://github.com/MrKgg3250/dsh-boot-kit.git
-> node dsh-skin/packages/dsh-boot-kit/bin.mjs --dry-run
+> node dsh-boot-kit/packages/dsh-boot-kit/bin.mjs --dry-run
+> ```
+>
+> 只想要运行时插件的话，连 clone 都不用 —— 从 Release 直接装（不经 npm）：
+>
+> ```bash
+> dsh plugin --profile desktop add \
+>   https://github.com/MrKgg3250/dsh-boot-kit/releases/download/v1.0.0/dsh-skin-boot-sync-1.0.0.tgz
 > ```
 
 只想要皮肤动画同步，不要启动动画和全家桶：
