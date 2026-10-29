@@ -66,10 +66,11 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ inputs.tag || github.ref_name }}
         run: |
-          if gh release view "$TAG" >/dev/null 2>&1; then
-            gh release upload "$TAG" dist/*.tgz --clobber
-          else
-            gh release create "$TAG" dist/*.tgz \
-              --title "$TAG · plugin v${{ steps.v.outputs.plugin }} · cli v${{ steps.v.outputs.cli }}" \
-              --generate-notes
-          fi
+          # Delete + recreate rather than upload into an existing release:
+          # deleting the tag that a release points at turns that release into a
+          # DRAFT, and draft assets 404 for everyone without write access. A
+          # re-published tag must therefore never leave the old object behind.
+          gh release delete "$TAG" --yes 2>/dev/null || true
+          gh release create "$TAG" dist/*.tgz \
+            --title "$TAG · plugin v${{ steps.v.outputs.plugin }} · cli v${{ steps.v.outputs.cli }}" \
+            --generate-notes
