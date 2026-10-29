@@ -3,9 +3,9 @@
 ![dsh-boot-kit：一条命令换掉 DSH 的开机画面](docs/media/cover.png)
 
 [![ci](https://github.com/MrKgg3250/dsh-boot-kit/actions/workflows/ci.yml/badge.svg)](https://github.com/MrKgg3250/dsh-boot-kit/actions/workflows/ci.yml)
-[![price](docs/media/badge-price.svg)](https://github.com/MrKgg3250/dsh-boot-kit)
-[![license](docs/media/badge-license.svg)](LICENSE)
-[![dsh](docs/media/badge-dsh.svg)](docs/compatibility.md)
+[![price](docs/media/badge-price.png)](https://github.com/MrKgg3250/dsh-boot-kit)
+[![license](docs/media/badge-license.png)](LICENSE)
+[![dsh](docs/media/badge-dsh.png)](docs/compatibility.md)
 
 把「启动动画 + 皮肤背景从头播 + 关掉右下角宠物/余额挂件」这套 DSH 启动体验，
 做成一条命令装好。**免费、MIT、无遥测。**

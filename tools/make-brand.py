@@ -45,12 +45,16 @@ def find_browser() -> str:
     raise SystemExit("no Edge or Chrome found")
 
 
+def badge_dimensions(label: str, value: str) -> tuple[int, int, int]:
+    label_w = round(len(label) * 6.5) + 12
+    value_w = round(len(value) * 6.5) + 12
+    return label_w, value_w, label_w + value_w
+
+
 def badge_svg(label: str, value: str, colour: str) -> str:
     # 11px Verdana averages ~6.5px per glyph; textLength then forces the exact
     # width, so the layout holds whatever font the renderer picks.
-    label_w = round(len(label) * 6.5) + 12
-    value_w = round(len(value) * 6.5) + 12
-    total = label_w + value_w
+    label_w, value_w, total = badge_dimensions(label, value)
     return f"""<svg xmlns="http://www.w3.org/2000/svg" width="{total}" height="20" role="img" aria-label="{label}: {value}">
   <title>{label}: {value}</title>
   <linearGradient id="s" x2="0" y2="100%">
@@ -69,6 +73,26 @@ def badge_svg(label: str, value: str, colour: str) -> str:
   </g>
 </svg>
 """
+
+
+def shoot_badge(browser: str, markup: str, png_path: str, size: tuple[int, int], profile: str) -> None:
+    """Rasterise one badge at 2x.
+
+    PNG rather than SVG in the README on purpose: GitHub proxies relative images
+    through camo, and an SVG that fails to render there is a broken image — the
+    exact outcome the self-hosted badges were meant to avoid.
+    """
+    width, height = size
+    page = png_path + ".html"
+    with open(page, "w", encoding="utf-8") as handle:
+        # The markup is inlined rather than referenced so the page has no
+        # relative dependency on the SVG's location.
+        handle.write(
+            f'<!doctype html><html><body style="margin:0;background:transparent">'
+            f'{markup}</body></html>'
+        )
+    shoot(browser, page, png_path, profile, (width, height), scale=1)
+    os.remove(page)
 
 
 COVER = f"""<!doctype html>
@@ -148,7 +172,8 @@ COVER = f"""<!doctype html>
 """
 
 
-def shoot(browser: str, page: str, out: str, profile: str) -> None:
+def shoot(browser: str, page: str, out: str, profile: str, size: tuple[int, int] = (WIDTH, HEIGHT), scale: int = SCALE) -> None:
+    width, height = size
     cmd = [
         browser,
         "--headless=new",
@@ -159,8 +184,8 @@ def shoot(browser: str, page: str, out: str, profile: str) -> None:
         "--disable-extensions",
         "--virtual-time-budget=2000",
         f"--user-data-dir={profile}",
-        f"--window-size={WIDTH},{HEIGHT}",
-        f"--force-device-scale-factor={SCALE}",
+        f"--window-size={width},{height}",
+        f"--force-device-scale-factor={scale}",
         f"--screenshot={out}",
         f"file:///{page.replace(os.sep, '/')}",
     ]
@@ -179,23 +204,29 @@ def main() -> int:
     args = parser.parse_args()
 
     os.makedirs(args.out, exist_ok=True)
-
-    for label, value, colour, name in BADGES:
-        path = os.path.join(args.out, name)
-        with open(path, "w", encoding="utf-8") as handle:
-            handle.write(badge_svg(label, value, colour))
-        print(f"  wrote {path}")
-
     browser = args.browser or find_browser()
-    work = tempfile.mkdtemp(prefix="dsh-boot-kit-cover-")
+    work = tempfile.mkdtemp(prefix="dsh-boot-kit-brand-")
+    profile = os.path.join(work, "profile")
     try:
+        for label, value, colour, name in BADGES:
+            markup = badge_svg(label, value, colour)
+            svg_path = os.path.join(args.out, name)
+            with open(svg_path, "w", encoding="utf-8") as handle:
+                handle.write(markup)
+            print(f"  wrote {svg_path}")
+
+            _, _, total = badge_dimensions(label, value)
+            png_path = os.path.abspath(os.path.join(args.out, name[:-4] + ".png"))
+            shoot_badge(browser, markup, png_path, (total, 20), profile)
+            print(f"  wrote {png_path}  ({os.path.getsize(png_path) / 1024:.1f} KB)")
+
         page = os.path.join(work, "cover.html")
         with open(page, "w", encoding="utf-8") as handle:
             handle.write(COVER)
         # Absolute: Edge resolves --screenshot against its own working directory,
         # not ours, and silently fails to write a relative path.
         cover = os.path.abspath(os.path.join(args.out, "cover.png"))
-        shoot(browser, page, cover, os.path.join(work, "profile"))
+        shoot(browser, page, cover, profile)
         print(f"  wrote {cover}  ({os.path.getsize(cover) / 1024:.0f} KB)")
     finally:
         shutil.rmtree(work, ignore_errors=True)
