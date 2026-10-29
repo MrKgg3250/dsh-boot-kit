@@ -202,7 +202,9 @@ async function main(argv) {
     outcomes.patch = patchUserLayer(ctx, plan)
 
     say('  6/7 verify')
-    const { errors, warnings } = verify(ctx)
+    const { errors, warnings } = verify(ctx, {
+      assumeAdded: (outcomes.reconcile && outcomes.reconcile.added) || [],
+    })
     for (const item of warnings) warn(item)
     if (errors.length > 0) {
       throw new KitError('E_VERIFY', errors.join('\n    '), 'The profile is not bootable as written. Fix the above before restarting.')

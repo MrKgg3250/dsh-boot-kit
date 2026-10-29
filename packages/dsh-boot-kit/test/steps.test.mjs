@@ -143,13 +143,32 @@ test('verify catches an installed-but-unregistered plugin', () => {
   assert.match(errors[0], /missing from dsh\.profile\.bundles/)
 })
 
-test('verify catches a bundle row that cannot be resolved', () => {
+test('verify catches a planned plugin that never got installed', () => {
   const { paths } = makeProfile()
-  writeFileSync(
-    paths.manifestPath,
-    `${JSON.stringify({ dependencies: {}, dsh: { profile: { bundles: ['@deepseek-ai/dsh-base', 'dsh-skin-boot-sync'] } } })}\n`,
-  )
   const ctx = makeCtx(paths, planFor({ tier: 'minimal' }))
   const { errors } = verify(ctx)
-  assert.ok(errors.some((e) => /not resolvable/.test(e)), errors.join('\n'))
+  assert.equal(errors.length, 1)
+  assert.match(errors[0], /planned but not installed/)
+})
+
+test('verify accepts rows a dry run only planned', () => {
+  const { paths } = makeProfile()
+  fakePackage(paths, 'dsh-skin-boot-sync', bundlePatch('dsh-skin-boot-sync'))
+  const ctx = makeCtx(paths, planFor({ tier: 'minimal' }))
+  ctx.dryRun = true
+
+  const planned = reconcile(ctx) // returns what it would add, writes nothing
+  assert.equal(planned.added.length, 1)
+  assert.match(readFileSync(paths.manifestPath, 'utf8'), /"bundles": \[/, 'dry run must not write')
+
+  assert.equal(verify(ctx).errors.length, 1, 'without the assumption the row really is missing')
+  assert.deepEqual(verify(ctx, { assumeAdded: planned.added }).errors, [])
+})
+
+test('verify does not fail a dry run over packages it never installed', () => {
+  const { paths } = makeProfile()
+  const ctx = makeCtx(paths, planFor({ tier: 'full' }))
+  ctx.dryRun = true
+  const { errors } = verify(ctx)
+  assert.deepEqual(errors, [], 'a dry run installs nothing by design')
 })

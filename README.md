@@ -9,6 +9,10 @@
 
 DeepSeek Harness 0.2.1-rc.3 · Windows / macOS / Linux · MIT
 
+![dsh-boot-kit 的 dry-run 输出](docs/media/install-dry-run.gif)
+
+> 一次真实的 `--dry-run`。逐步说明见 [docs/install.md](docs/install.md)。
+
 ---
 
 ## 快速开始
@@ -82,8 +86,12 @@ packages/
   dsh-skin-boot-sync/   运行时插件：揭幕时把皮肤背景视频拨回第一帧（5.7 KB，零依赖）
   dsh-boot-kit/         安装器 CLI：七步流水线 + 校验 + 回滚备份
 docs/
+  install.md            安装图解（含 GIF）
   pitfalls.md           四个坑的复盘（含实测证据）
   compatibility.md      版本矩阵与非官方契约
+  media/                文档配图，由 tools/make-docs-media.py 生成
+tools/
+  make-docs-media.py    从真实输出重生成 docs/media（需要 Edge/Chrome + Pillow）
 ```
 
 ## 开发
@@ -94,6 +102,12 @@ node --test packages/dsh-boot-kit/test/
 
 # 用本仓库的插件源码装（不依赖 npm 发布）
 node packages/dsh-boot-kit/bin.mjs --source local --repo-root . --dry-run
+```
+
+文档配图不要手改，改完 CLI 输出后重跑：
+
+```bash
+python tools/make-docs-media.py --input transcript.txt
 ```
 
 ## 许可

@@ -27,15 +27,25 @@ export function resolvePaths({ dshHome, profile }) {
 
 export function readJson(file, fallback = null) {
   try {
-    return JSON.parse(readFileSync(file, 'utf8'))
+    const text = readText(file, '')
+    if (!text) return fallback
+    return JSON.parse(text)
   } catch {
     return fallback
   }
 }
 
+/**
+ * Read as UTF-8 and drop a byte-order mark.
+ *
+ * JSON.parse rejects a leading U+FEFF outright, and editors on Windows add one
+ * by accident (`Set-Content -Encoding utf8` does it every time). A profile whose
+ * package.json was ever re-saved that way would otherwise be reported as
+ * unreadable and the installer would refuse to run.
+ */
 export function readText(file, fallback = '') {
   try {
-    return readFileSync(file, 'utf8')
+    return readFileSync(file, 'utf8').replace(/^\uFEFF/, '')
   } catch {
     return fallback
   }

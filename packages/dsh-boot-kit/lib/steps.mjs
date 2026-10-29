@@ -189,12 +189,12 @@ export function reconcile(ctx) {
 
   if (ctx.dryRun) {
     ctx.log(`[dry-run] would register in dsh.profile.bundles: ${missing.join(', ')}`)
-    return { changed: true, note: missing.join(', ') }
+    return { changed: true, note: missing.join(', '), added: missing }
   }
   ctx.backup(ctx.paths.manifestPath)
   ctx.writeJson(ctx.paths.manifestPath, manifest)
   ctx.log(`registered in dsh.profile.bundles: ${missing.join(', ')}`)
-  return { changed: true, note: missing.join(', ') }
+  return { changed: true, note: missing.join(', '), added: missing }
 }
 
 // ── 5. patch user layer ─────────────────────────────────────────────────────
@@ -227,21 +227,32 @@ export function patchUserLayer(ctx, plan) {
 }
 
 // ── 6. verify ───────────────────────────────────────────────────────────────
-export function verify(ctx) {
+/**
+ * @param ctx
+ * @param {object} [options]
+ * @param {string[]} [options.assumeAdded] bundle rows a dry run decided it would
+ *   add but deliberately did not write. Passing them keeps a dry run from
+ *   failing verification on changes it chose not to make.
+ */
+export function verify(ctx, options = {}) {
   const errors = []
   const warnings = []
   const manifest = readJson(ctx.paths.manifestPath, null)
-  const bundles = readBundles(manifest)
+  const assumed = new Set(options.assumeAdded || [])
+  const bundles = [...new Set([...readBundles(manifest), ...assumed])]
   const names = plannedNames(ctx.plan)
 
   for (const name of names) {
-    if (!bundles.includes(name)) {
-      errors.push(`${name} is installed but missing from dsh.profile.bundles — it will not load`)
-      continue
-    }
     const info = inspectPackage(ctx.paths.nodeModules, name)
     if (!info) {
-      errors.push(`${name} is in dsh.profile.bundles but not resolvable from node_modules`)
+      // Nothing is installed on purpose during a dry run. In a real run a
+      // planned package that is absent means the install step did not really
+      // succeed, which is exactly what this check is for.
+      if (!ctx.dryRun) errors.push(`${name} is planned but not installed — the install step did not complete`)
+      continue
+    }
+    if (!bundles.includes(name)) {
+      errors.push(`${name} is installed but missing from dsh.profile.bundles — it will not load`)
       continue
     }
     if (info.hasBundlePatch && !existsSync(path.join(info.dir, ...info.patchRel.split('/')))) {
