@@ -55,6 +55,20 @@ echo   [2/4] 检测到 profile：!PROFILES!
 powershell -NoProfile -Command "if (Get-Process 'DeepSeek Harness' -ErrorAction SilentlyContinue) { exit 0 } else { exit 1 }"
 if not errorlevel 1 echo         桌面端正在运行，装完后请完全退出再打开。
 
+REM --- DSH 版本：主题全家桶要求 >= 0.2.1，旧版直接跳过主题 ------------------
+REM 旧版 DSH 配主题全家桶可能拖垮宿主（第三方插件把宿主服务带崩），
+REM 所以版本不够时只装本地两项，不碰 npm。
+set "DSH_VER="
+for /f "delims=" %%V in ('call "!DSH_CMD!" --version 2^>nul') do if not defined DSH_VER set "DSH_VER=%%V"
+set "THEME_OK=1"
+powershell -NoProfile -Command "$m=[regex]::Match('%DSH_VER%','\d+\.\d+\.\d+'); if (-not $m.Success) { exit 1 }; if ([version]$m.Value -ge [version]'0.2.1') { exit 0 } else { exit 1 }"
+if errorlevel 1 set "THEME_OK=0"
+if "!THEME_OK!"=="1" (
+  echo         DSH 版本 !DSH_VER!，可以装主题
+) else (
+  echo         DSH 版本 !DSH_VER! 偏旧，只装动画和皮肤同步，不装主题
+)
+
 REM --- 清理旧安装方式留下的网络依赖 -----------------------------------------
 REM 旧版安装器把包名装成了 GitHub URL，之后每次 pnpm 操作都会去请求 github。
 for %%P in (!PROFILES!) do call :cleanup_urls %%P
@@ -76,6 +90,8 @@ echo   装完了
 echo ==========================================
 echo   完全退出 DeepSeek Harness Desktop，再重新打开。
 echo   如果提示主题没装上：联网后再双击一次本文件即可。
+echo   如果打开应用时弹出报错窗口：点窗口里的
+echo   Disable third-party plugins 按钮可以一键恢复。
 echo.
 pause
 exit /b 0
@@ -85,19 +101,24 @@ REM ===========================================================================
 echo   安装到 %~1 profile ...
 set "SPECS="!PLUGIN_TGZ!""
 if defined STARTUP_TGZ set "SPECS="!STARTUP_TGZ!" "!PLUGIN_TGZ!""
+if "!THEME_OK!"=="0" goto local_only
 call "!DSH_CMD!" plugin --profile %~1 add !SPECS! @linxin666/dsh-web-all >nul 2>&1
-if not errorlevel 1 (
-  echo       %~1：全部装好，动画 + 皮肤同步 + 主题
-  exit /b 0
-)
+if not errorlevel 1 goto theme_ok
 echo       主题需要网络，改为只装动画和皮肤同步 ...
+
+:local_only
 call "!DSH_CMD!" plugin --profile %~1 add !SPECS!
-if errorlevel 1 (
-  echo       %~1：安装失败，看上面的报错
-  exit /b 1
-)
-echo       %~1：动画和皮肤同步已装好，主题联网后再跑一次本文件
+if errorlevel 1 goto install_fail
+echo       %~1：动画和皮肤同步已装好（主题可联网后再跑一次本文件）
 exit /b 0
+
+:theme_ok
+echo       %~1：全部装好，动画 + 皮肤同步 + 主题
+exit /b 0
+
+:install_fail
+echo       %~1：安装失败，看上面的报错
+exit /b 1
 
 :try_dsh
 if defined DSH_CMD exit /b 0
