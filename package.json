@@ -18,8 +18,8 @@
     "node": "^22.19.0 || >=24.0.0"
   },
   "scripts": {
-    "test": "node --test packages/dsh-skin-boot-sync/test/ packages/dsh-boot-kit/test/",
-    "test:plugin": "node --test packages/dsh-skin-boot-sync/test/",
-    "test:cli": "node --test packages/dsh-boot-kit/test/"
+    "test": "node --test",
+    "test:plugin": "node --test \"packages/dsh-skin-boot-sync/test/*.test.mjs\"",
+    "test:cli": "node --test \"packages/dsh-boot-kit/test/*.test.mjs\""
   }
 }

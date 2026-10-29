@@ -28,11 +28,15 @@ jobs:
       # No install step: both packages are dependency-free on purpose, so the
       # tests run straight from a checkout. If that ever stops being true, this
       # is the line that has to change.
+      #
+      # Glob, not a directory: `node --test <dir>` loads the directory as a
+      # module and fails with MODULE_NOT_FOUND. The quotes keep bash from
+      # expanding it, so Node expands the same way on every runner.
       - name: runtime plugin tests
-        run: node --test packages/dsh-skin-boot-sync/test/
+        run: node --test "packages/dsh-skin-boot-sync/test/*.test.mjs"
 
       - name: installer tests
-        run: node --test packages/dsh-boot-kit/test/
+        run: node --test "packages/dsh-boot-kit/test/*.test.mjs"
 
       - name: cli smoke test
         run: node packages/dsh-boot-kit/bin.mjs --help

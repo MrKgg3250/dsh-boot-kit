@@ -32,6 +32,6 @@
     "url": "https://github.com/MrKgg3250/dsh-skin/issues"
   },
   "scripts": {
-    "test": "node --test test/"
+    "test": "node --test"
   }
 }
