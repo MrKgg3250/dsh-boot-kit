@@ -22,6 +22,15 @@
   "engines": {
     "node": "^22.19.0 || >=24.0.0"
   },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MrKgg3250/dsh-skin.git",
+    "directory": "packages/dsh-boot-kit"
+  },
+  "homepage": "https://github.com/MrKgg3250/dsh-skin/tree/main/packages/dsh-boot-kit#readme",
+  "bugs": {
+    "url": "https://github.com/MrKgg3250/dsh-skin/issues"
+  },
   "scripts": {
     "test": "node --test test/"
   }

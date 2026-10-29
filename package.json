@@ -6,6 +6,14 @@
   "license": "MIT",
   "type": "module",
   "packageManager": "pnpm@11.28.5",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MrKgg3250/dsh-skin.git"
+  },
+  "homepage": "https://github.com/MrKgg3250/dsh-skin#readme",
+  "bugs": {
+    "url": "https://github.com/MrKgg3250/dsh-skin/issues"
+  },
   "engines": {
     "node": "^22.19.0 || >=24.0.0"
   },

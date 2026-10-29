@@ -27,6 +27,15 @@
   "engines": {
     "node": "^22.19.0 || >=24.0.0"
   },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MrKgg3250/dsh-skin.git",
+    "directory": "packages/dsh-skin-boot-sync"
+  },
+  "homepage": "https://github.com/MrKgg3250/dsh-skin/tree/main/packages/dsh-skin-boot-sync#readme",
+  "bugs": {
+    "url": "https://github.com/MrKgg3250/dsh-skin/issues"
+  },
   "dsh": {
     "engines": {
       "dsh": ">=0.2.1-rc.3"
