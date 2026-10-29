@@ -61,7 +61,9 @@ Options
   --profile <name>     profile to install into        (default: $DSH_PROFILE or desktop)
   --dsh <path>         the dsh entry point            (default: $DSH_CLI or "dsh" on PATH)
   --dsh-home <path>    DSH home                       (default: $DSH_HOME or ~/.dsh)
-  --source <npm|local> where dsh-skin-boot-sync comes from (default: npm)
+  --source <name>      release | npm | local          (default: release)
+                         where dsh-skin-boot-sync comes from; 'release' fetches
+                         the GitHub tarball and needs no npm access at all
   --repo-root <path>   repository root, required with --source local
   --with-widget        also install dsh-whale-widget (it stays switched off)
   --revert             undo what this kit installed, then exit
@@ -80,7 +82,7 @@ function parseArgs(argv) {
     profile: undefined,
     dshHome: undefined,
     cli: process.env.DSH_CLI || 'dsh',
-    source: 'npm',
+    source: 'release',
     repoRoot: undefined,
     withWidget: false,
     dryRun: false,
@@ -114,7 +116,9 @@ function parseArgs(argv) {
     }
   }
   if (!TIERS.includes(opts.tier)) throw new KitError('E_USAGE', `--tier must be one of ${TIERS.join('|')}`)
-  if (!['npm', 'local'].includes(opts.source)) throw new KitError('E_USAGE', '--source must be npm or local')
+  if (!['release', 'npm', 'local'].includes(opts.source)) {
+    throw new KitError('E_USAGE', '--source must be release, npm or local')
+  }
   if (opts.source === 'local' && !opts.repoRoot) throw new KitError('E_USAGE', '--source local needs --repo-root')
   return opts
 }
@@ -145,7 +149,13 @@ async function main(argv) {
   say('')
   say(`  dsh-boot-kit ${VERSION}${opts.dryRun ? '  (dry run — nothing will be written)' : ''}`)
   say(`  profile  ${paths.profile}   ${paths.profileDir}`)
-  say(`  tier     ${plan.tier}  (${[...plan.npm, ...plan.local, ...plan.github.map((g) => `${g.name}@${g.version}`)].join(', ')})`)
+  const planParts = [
+    ...plan.release.map((u) => u.split('/').pop()),
+    ...plan.npm,
+    ...plan.local,
+    ...plan.github.map((g) => `${g.name}@${g.version}`),
+  ]
+  say(`  tier     ${plan.tier}  (${planParts.join(', ')})`)
   say('')
 
   const desktopRunning = await detectDesktopApp()

@@ -44,7 +44,13 @@ DSH 的市场目录是 `@linxin666/dsh-client-ui-community-plugins` 里的 `comm
 **发布到 npm 基本是必须的**（见 [publish.md](publish.md)）。条目里的 `npm` 字段指向
 包名，包不存在的话，装的人会直接失败 —— 这比不收录更糟。
 
-不走 npm 的变体**实测走不通**，写在这里防止将来再试：
+而本项目**不发布 npm**（作者所在地区无法访问发布通道），所以：
+
+> **结论：市场收录目前不可行。** 除非先做重构 —— 把 `dsh-skin-boot-sync` 移到
+> 仓库根目录（CLI 挪进子目录），那样 `dsh plugin add github:MrKgg3250/dsh-boot-kit`
+> 就能直接装上插件，不依赖 npm。重构改动公开仓库的形态，需要先和维护者确认。
+
+不走 npm 的其他变体**实测走不通**，写在这里防止将来再试：
 
 - 按 GitHub 仓库 URL 安装（市场「从 GitHub 安装」的路径）：装上的是 **monorepo 根**
   （`dsh-boot-kit-monorepo`），DSH 明确警告

@@ -14,7 +14,7 @@ import {
   writePnpmFlags,
 } from '../lib/steps.mjs'
 import { readJson } from '../lib/context.mjs'
-import { planFor } from '../lib/specs.mjs'
+import { planFor, SKIN_BOOT_SYNC } from '../lib/specs.mjs'
 
 function makeProfile() {
   const root = mkdtempSync(path.join(os.tmpdir(), 'dsh-boot-kit-'))
@@ -214,4 +214,12 @@ test('uninstall skips packages that are not installed', async () => {
   const ctx = makeCtx(paths, planFor({ tier: 'minimal' }))
   const result = await uninstall(ctx, ctx.plan)
   assert.equal(result.changed, false, 'nothing to remove means no pnpm run at all')
+})
+
+test('the default source is the release tarball, so no npm access is needed', () => {
+  const plan = planFor({ tier: 'minimal' })
+  assert.deepEqual(plan.release, [SKIN_BOOT_SYNC.url], 'plugin comes from the GitHub release')
+  assert.deepEqual(plan.npm, [], 'the default tier must not touch the npm registry')
+  assert.deepEqual(planFor({ tier: 'minimal', source: 'npm' }).npm, ['dsh-skin-boot-sync'], 'npm stays an option')
+  assert.throws(() => planFor({ tier: 'minimal', source: 'nope' }))
 })

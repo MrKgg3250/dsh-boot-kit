@@ -1,10 +1,11 @@
 # 发布
 
-发布有三条通道。**前两条不需要本机装 npm**；第三条说明为什么 npm 从来不是卡点。
+发布有三条通道。**本项目实际使用的只有通道一**（作者所在地区无法访问 npm 发布
+通道）；通道二、三保留为备用 —— 将来若有网络可达的环境 + 账号令牌，代码已经写好。
 
 ---
 
-## 通道一：GitHub Release（现在就能用，零账号）
+## 通道一：GitHub Release（实际在用，零账号）
 
 打个 tag，CI 会测试、打包，把两个 tarball 挂到 Release 上：
 
@@ -20,10 +21,13 @@ dsh plugin --profile desktop add \
   https://github.com/MrKgg3250/dsh-boot-kit/releases/download/v1.0.0/dsh-skin-boot-sync-1.0.0.tgz
 ```
 
-规则：**tag 对应的版本必须先在 `package.json` 里改好**。重发同一个 tag 会往已有的
-Release 上覆盖上传附件（`--clobber`），但 npm 那边同版本号发不出去。
+规则：**tag 对应的版本必须先在 `package.json` 里改好**。重发同一个 tag 会删旧建新，
+不会留下草稿 Release（草稿的附件对匿名用户 404）。
 
-## 通道二：GitHub Actions 发 npm（推荐，本机什么都不装）
+CLI 的默认来源（`--source release`）就是这个 tarball，所以 `--tier minimal/boot`
+**完全不需要 npm 通道**。
+
+## 通道二：GitHub Actions 发 npm（备用，目前用不了）
 
 1. 在 <https://www.npmjs.com/settings/<你>/tokens> 建一个 **Granular Access Token**，
    权限只给「Read and write → Packages」，或建 **Automation** 型经典令牌（可绕过
@@ -35,10 +39,10 @@ Release 上覆盖上传附件（`--clobber`），但 npm 那边同版本号发�
 加令牌之前打的 tag 想补发 npm：**Actions → release → Run workflow**，填那个已存在的
 tag 重跑一次即可。
 
-## 通道三：本机 pnpm（npm 命令不是必需的）
+## 通道三：本机 pnpm（备用，同样卡在发布端点）
 
 这台机器没有 npm-cli，但有 DSH 自带的 pnpm，`pnpm publish` 与 `npm publish` 等价。
-缺的从来不是工具，是**账号令牌**：
+缺的不是工具，是**能访问发布端点的网络 + 账号令牌**，所以和通道二卡在同一处。
 
 ```powershell
 # 你自己执行这一行，令牌不要经过聊天或提交进仓库

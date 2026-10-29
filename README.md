@@ -22,45 +22,46 @@
 
 ## 快速开始
 
-```bash
-# 先完全退出 DeepSeek Harness（桌面端会占用 profile 的 package.json）
-npx dsh-boot-kit
+### 只要动画同步（零 npm，一条命令）
 
-# 装完再打开应用
+装之前**完全退出 DeepSeek Harness**（桌面端会占用 profile 的 package.json）：
+
+```bash
+dsh plugin --profile desktop add \
+  https://github.com/MrKgg3250/dsh-boot-kit/releases/download/v1.0.0/dsh-skin-boot-sync-1.0.0.tgz
 ```
 
-> 还没发布到 npm 之前，`npx` 会找不到包。先 clone 再从仓库跑，行为完全一样：
->
-> ```bash
-> git clone https://github.com/MrKgg3250/dsh-boot-kit.git
-> node dsh-boot-kit/packages/dsh-boot-kit/bin.mjs --dry-run
-> ```
->
-> 只想要运行时插件的话，连 clone 都不用 —— 从 Release 直接装（不经 npm）：
->
-> ```bash
-> dsh plugin --profile desktop add \
->   https://github.com/MrKgg3250/dsh-boot-kit/releases/download/v1.0.0/dsh-skin-boot-sync-1.0.0.tgz
-> ```
->
+装完再打开应用。`dsh` 不在 PATH 时用完整路径
+`<安装目录>\resources\runtime\cli\bin\dsh.cmd`；`desktop` profile 要求桌面端至少
+打开过一次，刚装好应用的机器先启动一次再装。
+
+### 全套安装（启动动画 + 皮肤同步 + 关掉宠物/挂件）
+
+```bash
+git clone https://github.com/MrKgg3250/dsh-boot-kit.git
+cd dsh-boot-kit
+
+node packages/dsh-boot-kit/bin.mjs --dry-run     # 先看计划，不写任何文件
+node packages/dsh-boot-kit/bin.mjs --tier full   # 装
+```
+
+档位与 npm 的关系：
+
+| 档位 | 需要 npm 通道？ |
+|---|---|
+| `--tier minimal` | **不需要** —— 插件来自 GitHub Release |
+| `--tier boot` | **不需要** —— 启动动画同样来自 Release |
+| `--tier full` | 只有 `@linxin666/dsh-web-all` 需要（国内配 npmmirror 镜像即可） |
+
 > ⚠️ **不要**把仓库地址粘进插件管理页的「从 GitHub 安装」：这是个 monorepo，按仓库名
 > 装只会装进 monorepo 根（实测 DSH 提示 `declares no dsh.bundle — installed as a
-> plain dependency`，等于装了个空壳，什么都不发生）。插件请用上面的 tarball 地址，
-> 或等 npm 发布后按包名装。
->
-> 另外 `desktop` profile 要求桌面端至少打开过一次，刚装好应用的机器先启动一次再装。
+> plain dependency`，等于装了个空壳，什么都不发生）。
 
-只想要皮肤动画同步，不要启动动画和全家桶：
+### 关于 npm
 
-```bash
-npx dsh-boot-kit --tier minimal
-```
-
-先看它打算做什么，不写任何文件：
-
-```bash
-npx dsh-boot-kit --dry-run
-```
+本项目**不发布到 npm**（作者所在地区无法访问 npm 发布通道），分发全部走
+GitHub Release。`npx dsh-boot-kit` 永远不会工作，别按其他插件的习惯去试。
+发布方式与给贡献者的说明见 [docs/publish.md](docs/publish.md)。
 
 ---
 

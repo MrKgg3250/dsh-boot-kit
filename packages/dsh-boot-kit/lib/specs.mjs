@@ -13,6 +13,14 @@ export const MIN_DSH = '0.2.1-rc.3'
 export const SKIN_BOOT_SYNC = {
   name: 'dsh-skin-boot-sync',
   version: '1.0.0',
+  repo: 'MrKgg3250/dsh-boot-kit',
+  /**
+   * The plugin ships as a GitHub Release tarball, not on npm: the author's
+   * region cannot reach the npm publish endpoint, and `dsh plugin add <url>`
+   * needs nothing from the registry anyway (the package is zero-dependency).
+   * Version-pinned for the same reason as STARTUP_SCREEN.
+   */
+  url: 'https://github.com/MrKgg3250/dsh-boot-kit/releases/download/v1.0.0/dsh-skin-boot-sync-1.0.0.tgz',
 }
 
 /**
@@ -52,26 +60,41 @@ export const DEFAULT_DISABLES = [
 
 export const TIERS = ['minimal', 'boot', 'full']
 
+/** Where the kit's own plugin can come from; see planFor. */
+export const SOURCES = ['release', 'npm', 'local']
+
 /**
+ * Where the kit's own plugin comes from.
+ *
+ * 'release' is the default because the author cannot publish to npm from their
+ * region — and clients do not need the registry for it either: the tarball is
+ * zero-dependency, so `dsh plugin add <url>` works with no npm access at all.
+ * 'npm' stays available for when that changes.
+ *
  * @param {object} options
  * @param {'minimal'|'boot'|'full'} options.tier
- * @param {'npm'|'local'} options.source   how to resolve our own plugin
+ * @param {'release'|'npm'|'local'} options.source  how to resolve our own plugin
  * @param {string} [options.repoRoot]      required when source === 'local'
  * @param {boolean} [options.withWidget]
  */
-export function planFor({ tier, source = 'npm', repoRoot, withWidget = false }) {
+export function planFor({ tier, source = 'release', repoRoot, withWidget = false }) {
   if (!TIERS.includes(tier)) throw new Error(`unknown tier: ${tier}`)
+  // Silently falling back on a typo ("nmp") would route the plugin through the
+  // wrong channel; fail loudly instead.
+  if (!SOURCES.includes(source)) throw new Error(`unknown source: ${source}`)
 
   const npm = []
   const github = []
   const local = []
+  const release = []
 
-  const pluginSpec =
-    source === 'local'
-      ? `${repoRoot.replace(/\\/g, '/')}/packages/dsh-skin-boot-sync`
-      : SKIN_BOOT_SYNC.name
-  if (source === 'local') local.push(pluginSpec)
-  else npm.push(pluginSpec)
+  if (source === 'local') {
+    local.push(`${repoRoot.replace(/\\/g, '/')}/packages/dsh-skin-boot-sync`)
+  } else if (source === 'npm') {
+    npm.push(SKIN_BOOT_SYNC.name)
+  } else {
+    release.push(SKIN_BOOT_SYNC.url)
+  }
 
   if (tier === 'boot' || tier === 'full') github.push(STARTUP_SCREEN)
   if (tier === 'full') npm.push(WEB_ALL)
@@ -83,6 +106,7 @@ export function planFor({ tier, source = 'npm', repoRoot, withWidget = false }) 
     npm,
     github,
     local,
+    release,
     disables: DEFAULT_DISABLES,
   }
 }

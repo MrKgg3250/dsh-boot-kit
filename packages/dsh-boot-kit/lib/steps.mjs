@@ -124,7 +124,10 @@ export async function downloadStartup(ctx, plan) {
 }
 
 export async function install(ctx, plan, startupTarball) {
-  const specs = [...plan.npm, ...plan.local]
+  // Release URLs are passed straight through: `dsh plugin add <url>` fetches
+  // them itself, and a zero-dependency tarball needs no registry access — the
+  // whole point of the default source.
+  const specs = [...plan.release, ...plan.npm, ...plan.local]
   if (startupTarball) specs.push(startupTarball)
   if (specs.length === 0) return { changed: false }
 
