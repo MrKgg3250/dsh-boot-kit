@@ -71,7 +71,11 @@ jobs:
           # DRAFT, and draft assets 404 for everyone without write access. A
           # re-published tag must therefore never leave the old object behind.
           gh release delete "$TAG" --yes 2>/dev/null || true
-          # install.cmd + local/*.tgz：从 Release 页面下载的人也能凑齐一整套离线安装包
-          gh release create "$TAG" dist/*.tgz install.cmd local/*.tgz \
+          # Assets land flat on the release page and are named by basename, so
+          # never attach two files called dsh-skin-boot-sync-*.tgz: dist/ holds
+          # the npm-packed plugin, local/ the pnpm-packed one, and the duplicate
+          # name fails the create with 422. The startup tarball exists only in
+          # local/, and its name is unique.
+          gh release create "$TAG" dist/*.tgz install.cmd local/dsh-startup-screen-*.tgz \
             --title "$TAG · plugin v${{ steps.v.outputs.plugin }} · cli v${{ steps.v.outputs.cli }}" \
             --generate-notes

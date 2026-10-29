@@ -24,11 +24,12 @@ set "HOME_DIR=%DSH_HOME%"
 if not defined HOME_DIR set "HOME_DIR=%USERPROFILE%\.dsh"
 
 REM local\ 里的包用通配符找：版本号升级后不用改本脚本。
+REM 同时也从本文件旁边找 —— Release 页面的资产是平铺的，没有 local\ 子目录。
 REM 注意 cmd 的坑：通配符不匹配时 for 会返回字面量，必须 if exist 过滤。
 set "PLUGIN_TGZ="
-for %%F in ("!HERE!\local\dsh-skin-boot-sync-*.tgz") do if exist "%%~fF" set "PLUGIN_TGZ=%%~fF"
+for %%F in ("!HERE!\local\dsh-skin-boot-sync-*.tgz" "!HERE!\dsh-skin-boot-sync-*.tgz") do if exist "%%~fF" set "PLUGIN_TGZ=%%~fF"
 set "STARTUP_TGZ="
-for %%F in ("!HERE!\local\dsh-startup-screen-*.tgz") do if exist "%%~fF" set "STARTUP_TGZ=%%~fF"
+for %%F in ("!HERE!\local\dsh-startup-screen-*.tgz" "!HERE!\dsh-startup-screen-*.tgz") do if exist "%%~fF" set "STARTUP_TGZ=%%~fF"
 if not defined PLUGIN_TGZ goto no_local
 
 echo.
