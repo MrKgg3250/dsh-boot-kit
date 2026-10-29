@@ -14,7 +14,7 @@ import {
   writePnpmFlags,
 } from '../lib/steps.mjs'
 import { readJson } from '../lib/context.mjs'
-import { planFor, SKIN_BOOT_SYNC } from '../lib/specs.mjs'
+import { planFor, SKIN_BOOT_SYNC, STARTUP_SCREEN } from '../lib/specs.mjs'
 
 function makeProfile() {
   const root = mkdtempSync(path.join(os.tmpdir(), 'dsh-boot-kit-'))
@@ -222,4 +222,11 @@ test('the default source is the release tarball, so no npm access is needed', ()
   assert.deepEqual(plan.npm, [], 'the default tier must not touch the npm registry')
   assert.deepEqual(planFor({ tier: 'minimal', source: 'npm' }).npm, ['dsh-skin-boot-sync'], 'npm stays an option')
   assert.throws(() => planFor({ tier: 'minimal', source: 'nope' }))
+})
+
+test('both downloaded tarballs carry a sha256 pin', () => {
+  for (const asset of [SKIN_BOOT_SYNC, STARTUP_SCREEN]) {
+    assert.match(asset.sha256, /^[0-9a-f]{64}$/, `${asset.name} must pin its sha256`)
+    assert.match(asset.url, /^https:\/\/github\.com\/.+\.tgz$/, `${asset.name} must pin its URL`)
+  }
 })

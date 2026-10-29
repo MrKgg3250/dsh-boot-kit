@@ -4,7 +4,8 @@
  * behind that nothing owns.
  */
 import path from 'node:path'
-import { writeFileSync, copyFileSync, existsSync } from 'node:fs'
+import crypto from 'node:crypto'
+import { writeFileSync, copyFileSync, existsSync, readFileSync } from 'node:fs'
 
 import {
   appendDisableRow,
@@ -97,37 +98,102 @@ export function writePnpmFlags(ctx) {
 }
 
 // ── 3. install ──────────────────────────────────────────────────────────────
-export async function downloadStartup(ctx, plan) {
-  if (plan.github.length === 0) return null
-  const target = path.join(ctx.paths.pluginsDir, STARTUP_SCREEN.asset)
+/**
+ * `fetch` with retries.
+ *
+ * The GitHub release host is reachable but flaky from China: a HEAD 200 one
+ * minute, an ETIMEDOUT the next. pnpm retries its own downloads; this covers
+ * the tarball the CLI fetches itself, which would otherwise fail the whole
+ * install on one bad connection.
+ */
+async function fetchWithRetry(url, attempts, warn) {
+  let last = 'unknown error'
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    try {
+      const response = await fetch(url, { redirect: 'follow' })
+      if (response.ok) return response
+      last = `HTTP ${response.status}`
+    } catch (error) {
+      last = error && error.message ? error.message : String(error)
+    }
+    if (attempt < attempts) {
+      const waitMs = attempt * 5000
+      warn(`download failed (${last}); retrying in ${waitMs / 1000}s ...`)
+      await new Promise((resolve) => setTimeout(resolve, waitMs))
+    }
+  }
+  return { ok: false, statusText: last }
+}
+
+function sha256File(file) {
+  try {
+    return crypto.createHash('sha256').update(readFileSync(file)).digest('hex')
+  } catch {
+    return ''
+  }
+}
+
+/**
+ * Download a release tarball, verify it, cache it.
+ *
+ * Every download is sha256-checked against a pin in specs.mjs — a tampered or
+ * truncated mirror must not reach the profile — and the cache is checked too:
+ * a previously cached file that no longer matches (a partial write, a bad
+ * manual copy) is re-downloaded instead of installed.
+ */
+async function downloadTarball(ctx, asset) {
+  const target = path.join(ctx.paths.pluginsDir, asset.name)
   if (existsSync(target)) {
-    ctx.log(`startup tarball already present: ${target}`)
-    return target
+    if (sha256File(target) === asset.sha256) {
+      ctx.log(`${asset.name} already present, sha256 ok`)
+      return target
+    }
+    ctx.warn(`cached ${asset.name} has a bad sha256 — re-downloading`)
   }
   if (ctx.dryRun) {
-    ctx.log(`[dry-run] would download ${STARTUP_SCREEN.url}`)
+    ctx.log(`[dry-run] would download ${asset.url}`)
     return target
   }
 
-  const response = await fetch(STARTUP_SCREEN.url, { redirect: 'follow' })
+  const response = await fetchWithRetry(asset.url, 3, ctx.warn)
   if (!response.ok) {
     throw new KitError(
       'E_GITHUB_DOWNLOAD',
-      `GET ${STARTUP_SCREEN.url} -> HTTP ${response.status}`,
+      `GET ${asset.url} -> ${response.statusText} (3 attempts)`,
       'Download that tarball by hand, put it in the plugins directory, and rerun.',
     )
   }
   const buffer = Buffer.from(await response.arrayBuffer())
+  const actual = crypto.createHash('sha256').update(buffer).digest('hex')
+  if (actual !== asset.sha256) {
+    throw new KitError(
+      'E_TARBALL_HASH',
+      `${asset.name}: sha256 mismatch`,
+      `expected ${asset.sha256}\nactual   ${actual}\nThe download was corrupted or tampered with; do not install it.`,
+    )
+  }
   ctx.writeBinary(target, buffer)
-  ctx.log(`downloaded ${STARTUP_SCREEN.name}@${STARTUP_SCREEN.version} (${Math.round(buffer.length / 1024)} KB)`)
+  ctx.log(`downloaded ${asset.name} (${Math.round(buffer.length / 1024)} KB, sha256 ok)`)
   return target
 }
 
-export async function install(ctx, plan, startupTarball) {
-  // Release URLs are passed straight through: `dsh plugin add <url>` fetches
-  // them itself, and a zero-dependency tarball needs no registry access — the
-  // whole point of the default source.
-  const specs = [...plan.release, ...plan.npm, ...plan.local]
+export function downloadStartup(ctx, plan) {
+  if (plan.github.length === 0) return Promise.resolve(null)
+  return downloadTarball(ctx, STARTUP_SCREEN)
+}
+
+export function downloadPlugin(ctx, plan) {
+  if (plan.release.length === 0) return Promise.resolve(null)
+  return downloadTarball(ctx, SKIN_BOOT_SYNC)
+}
+
+export async function install(ctx, plan, { pluginTarball, startupTarball } = {}) {
+  // The plugin is downloaded and sha256-checked by downloadPlugin first, then
+  // installed from the local file; the startup tarball likewise. pnpm never
+  // fetches an unverified URL.
+  const specs = []
+  if (pluginTarball) specs.push(pluginTarball)
+  specs.push(...plan.npm, ...plan.local)
   if (startupTarball) specs.push(startupTarball)
   if (specs.length === 0) return { changed: false }
 

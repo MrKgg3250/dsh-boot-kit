@@ -28,6 +28,7 @@ import { MIN_DSH, TESTED_DSH, TIERS, planFor } from './lib/specs.mjs'
 import {
   KitError,
   backup,
+  downloadPlugin,
   downloadStartup,
   install,
   patchUserLayer,
@@ -221,7 +222,8 @@ async function main(argv) {
 
     say('  3/7 install')
     const startupTarball = await downloadStartup(ctx, plan)
-    outcomes.install = await install(ctx, plan, startupTarball)
+    const pluginTarball = await downloadPlugin(ctx, plan)
+    outcomes.install = await install(ctx, plan, { pluginTarball, startupTarball })
 
     say('  4/7 reconcile dsh.profile.bundles')
     outcomes.reconcile = reconcile(ctx)

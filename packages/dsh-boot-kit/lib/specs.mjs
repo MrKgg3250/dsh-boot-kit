@@ -21,6 +21,8 @@ export const SKIN_BOOT_SYNC = {
    * Version-pinned for the same reason as STARTUP_SCREEN.
    */
   url: 'https://github.com/MrKgg3250/dsh-boot-kit/releases/download/v1.0.0/dsh-skin-boot-sync-1.0.0.tgz',
+  /** sha256 of that exact tarball; verified after every download. */
+  sha256: 'c3d172d274f42fb1abd8de82f76682380fac3719197ee8de57b49599c0184de7',
 }
 
 /**
@@ -33,6 +35,8 @@ export const STARTUP_SCREEN = {
   repo: '6shenhonghong9/dsh-startup-screen',
   asset: 'dsh-startup-screen-1.2.0.tgz',
   url: 'https://github.com/6shenhonghong9/dsh-startup-screen/releases/download/v1.2.0/dsh-startup-screen-1.2.0.tgz',
+  /** sha256 of that exact tarball; verified after every download. */
+  sha256: 'ec979aabe63d125e195628ab8c5f54324f59b8a7cb564153e0e09b36c30c9d07',
 }
 
 export const WEB_ALL = '@linxin666/dsh-web-all'
