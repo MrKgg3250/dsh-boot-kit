@@ -144,6 +144,7 @@ npx dsh-boot-kit --revert
 
 ```
 install.cmd             一键安装（双击装全部；主题装不上时自动降级为本地两项）
+repair.cmd              启动崩溃时的修复/诊断（备份 patch + 摘掉本工具装的三个包）
 local/                  随工具分发的安装包（插件 + 启动动画的 tgz），安装离线可用
 packages/
   dsh-skin-boot-sync/   运行时插件：揭幕时把皮肤背景视频拨回第一帧（5.7 KB，零依赖）
