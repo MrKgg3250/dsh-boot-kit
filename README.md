@@ -24,9 +24,15 @@
 
 ### Windows：双击安装（不需要会用终端）
 
-1. 下载 [install.cmd](https://github.com/MrKgg3250/dsh-boot-kit/releases/latest/download/install.cmd)
-2. 双击它，选 `Q`（推荐：启动动画 + 皮肤同步）或 `S`（只装皮肤同步）
-3. 装完**完全退出 DeepSeek Harness Desktop，再重新打开**
+把**整个仓库文件夹**拷到目标机器（`install.cmd` 和 `local\` 必须在一起），双击
+`install.cmd`，按提示选：
+
+- **Q**（推荐）：启动动画 + 皮肤同步 —— **完全本地，不联网**
+- **T**：全套，含主题全家桶（`@linxin666/dsh-web-all`）和关掉右下角宠物 ——
+  主题来自 npm，需要能访问 registry（国内配 npmmirror 镜像即可）
+- **S**：只装皮肤同步（已经有启动动画的话）
+
+装完**完全退出 DeepSeek Harness Desktop，再重新打开**。
 
 脚本自动找 DSH —— 会从正在运行的桌面端进程反推安装目录，所以没有全局 `dsh`
 命令也能装。web / desktop 两个 profile 都会自动检测。
@@ -135,9 +141,10 @@ npx dsh-boot-kit --revert
 
 ```
 install.cmd             Windows 一键安装（双击即可，自动找 DSH、自动装）
+local/                  随工具分发的安装包（插件 + 启动动画的 tgz），安装全程离线
 packages/
   dsh-skin-boot-sync/   运行时插件：揭幕时把皮肤背景视频拨回第一帧（5.7 KB，零依赖）
-  dsh-boot-kit/         安装器 CLI：七步流水线 + 校验 + 回滚备份
+  dsh-boot-kit/         安装器 CLI：七步流水线 + 校验 + 回滚备份（在线分发用）
 docs/
   install.md            安装图解（含 GIF）
   pitfalls.md           四个坑的复盘（含实测证据）

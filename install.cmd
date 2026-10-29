@@ -3,34 +3,45 @@ setlocal enabledelayedexpansion
 chcp 65001 >nul 2>nul
 
 REM ============================================================================
-REM  dsh-boot-kit 一键安装（Windows，双击即可）
+REM  dsh-boot-kit 本地一键安装（Windows，双击即可）
 REM  ---------------------------------------------------------------------------
-REM  不需要会用终端：脚本自动找 DSH、自动判断 profile、自动下载安装。
+REM  全程不联网（除非选 T：主题全家桶 @linxin666/dsh-web-all 来自 npm，
+REM  国内通常已配 npmmirror 镜像）。
 REM
-REM  安装内容由你自己选：
-REM    Q（推荐）—— 启动动画 + 皮肤背景从第一帧开始（完整体验，不需要 npm）
-REM    S        —— 只装皮肤同步（已有启动动画的话选这个）
+REM  使用方式：把 install.cmd 和 local\ 文件夹一起拷到任何机器，双击本文件。
 REM
-REM  安装的是 dsh-startup-screen（GitHub Release）和 dsh-skin-boot-sync
-REM  （GitHub Release），都不经过 npm。只有 --tier full 的主题全家桶才需要
-REM  npm 通道，见 README。
+REM    Q（推荐）—— 启动动画 + 皮肤背景从第一帧开始（完全本地）
+REM    T         —— Q + 主题全家桶 + 关掉右下角宠物（需要 npm registry）
+REM    S         —— 只装皮肤同步（已有启动动画的话选这个）
 REM
 REM  桌面端注意：安装前请**完全退出** DeepSeek Harness Desktop，
 REM  装完再打开。（desktop profile 的 package.json 由桌面端进程锁管理）
 REM ============================================================================
 
+set "HERE=%~dp0"
+if "%HERE:~-1%"=="\" set "HERE=%HERE:~0,-1%"
 set "HOME_DIR=%DSH_HOME%"
 if not defined HOME_DIR set "HOME_DIR=%USERPROFILE%\.dsh"
 
-set "PLUGIN_URL=https://github.com/MrKgg3250/dsh-boot-kit/releases/download/v1.0.0/dsh-skin-boot-sync-1.0.0.tgz"
-set "STARTUP_URL=https://github.com/6shenhonghong9/dsh-startup-screen/releases/download/v1.2.0/dsh-startup-screen-1.2.0.tgz"
+REM local\ 里的包用通配符找：版本号升级后不用改本脚本。
+REM 注意 cmd 的坑：通配符不匹配时 for 会返回字面量，必须 if exist 过滤。
+set "PLUGIN_TGZ="
+for %%F in ("!HERE!\local\dsh-skin-boot-sync-*.tgz") do if exist "%%~fF" set "PLUGIN_TGZ=%%~fF"
+set "STARTUP_TGZ="
+for %%F in ("!HERE!\local\dsh-startup-screen-*.tgz") do if exist "%%~fF" set "STARTUP_TGZ=%%~fF"
+if not defined PLUGIN_TGZ goto no_local
 
 echo.
 echo ============================================================
-echo   dsh-boot-kit 一键安装
+echo   dsh-boot-kit 本地安装
 echo ============================================================
+if defined STARTUP_TGZ (
+  echo   本地包：启动动画 + 皮肤同步（不需要联网）
+) else (
+  echo   本地包：皮肤同步（local\ 里没有启动动画包，只装同步）
+)
 
-REM --- 1/4 找 dsh 命令 ------------------------------------------------------
+REM --- 找 dsh 命令 -----------------------------------------------------------
 set "DSH_CMD="
 where dsh >nul 2>nul
 if not errorlevel 1 (
@@ -52,30 +63,50 @@ if not defined DSH_CMD goto no_dsh
 :dsh_found
 echo   [1/4] 找到 dsh：!DSH_CMD!
 
-REM --- 2/4 检测 profile ------------------------------------------------------
+REM --- 检测 profile ----------------------------------------------------------
 set "PROFILES="
 if exist "%HOME_DIR%\profiles\web\package.json"      set "PROFILES=web"
 if exist "%HOME_DIR%\profiles\desktop\package.json"  set "PROFILES=!PROFILES! desktop"
 if not defined PROFILES goto no_profile
 echo   [2/4] 检测到 profile：!PROFILES!
 
-REM --- 3/4 选安装内容 --------------------------------------------------------
+REM --- 选模式 ----------------------------------------------------------------
 echo.
-choice /C QS /N /M "  [Q] 完整体验（启动动画+皮肤同步，推荐）  [S] 只装皮肤同步 : "
-if errorlevel 2 (
-  set "SPECS=!PLUGIN_URL!"
-) else (
-  set "SPECS=!STARTUP_URL! !PLUGIN_URL!"
-)
+choice /C QTS /N /M "  [Q] 启动动画+皮肤同步（推荐，离线）  [T] 全套含主题（需 npm）  [S] 只装皮肤同步 : "
+if errorlevel 3 goto opt_small
+if errorlevel 2 goto opt_full
 
-REM --- 4/4 安装 -------------------------------------------------------------
+REM Q：两个本地包一次装完
+set "SPECS="!PLUGIN_TGZ!""
+if defined STARTUP_TGZ set "SPECS="!STARTUP_TGZ!" "!PLUGIN_TGZ!""
+goto do_install
+
+:opt_small
+set "SPECS="!PLUGIN_TGZ!""
+goto do_install
+
+:opt_full
+REM T：web-all 带原生构建依赖（ssh2/cloudflared），pnpm 11 默认拒绝这些脚本，
+REM 不补配置安装会直接失败；顺带关掉它带的右下角宠物。
+echo   [3/4] 准备 profile（pnpm 配置 + 关掉宠物）...
+for %%P in (!PROFILES!) do (
+  powershell -NoProfile -Command "$f='%HOME_DIR%\profiles\%%P\pnpm-workspace.yaml'; if (Test-Path $f) { $t=[IO.File]::ReadAllText($f); if ($t -notmatch 'strictDepBuilds') { $nl=[Environment]::NewLine; [IO.File]::WriteAllText($f, $t + $nl + 'strictDepBuilds: false' + $nl) } } else { $nl=[Environment]::NewLine; Set-Content -Path $f -Value ('packages:' + $nl + '  - .' + $nl + 'strictDepBuilds: false' + $nl) -Encoding ascii }"
+  powershell -NoProfile -Command "$f='%HOME_DIR%\profiles\%%P\cordis.patch.yml'; $row='- id: web-ui-pet'; if (Test-Path $f) { $t=[IO.File]::ReadAllText($f); if ($t -notmatch '(?m)^- id: web-ui-pet') { $nl=[Environment]::NewLine; [IO.File]::WriteAllText($f, $t + $nl + '# Disabled by dsh-boot-kit (delete these two lines to restore).' + $nl + $row + $nl + '  disabled: true' + $nl) } } else { $nl=[Environment]::NewLine; Set-Content -Path $f -Value ($row + $nl + '  disabled: true' + $nl) -Encoding ascii }"
+)
+set "SPECS="!PLUGIN_TGZ!""
+if defined STARTUP_TGZ set "SPECS="!STARTUP_TGZ!" "!PLUGIN_TGZ!""
+set "SPECS=!SPECS! @linxin666/dsh-web-all"
+
+REM --- 安装 ------------------------------------------------------------------
+:do_install
 echo.
 for %%P in (!PROFILES!) do (
-  echo   [3/4] 安装到 %%P profile ...
+  echo   [4/4] 安装到 %%P profile ...
   call "!DSH_CMD!" plugin --profile %%P add !SPECS!
   if errorlevel 1 (
     echo         ^> %%P：安装失败，看上面的报错。
-    echo           常见原因：desktop profile 需要桌面端完全退出后再装。
+    echo           desktop profile 需要桌面端**完全退出**后再装。
+    echo           T 模式还需要能访问 npm registry（国内配 npmmirror 镜像）。
   ) else (
     echo         ^> %%P：完成
   )
@@ -85,22 +116,30 @@ echo.
 echo ============================================================
 echo   装完了
 echo ============================================================
-echo   **完全退出** DeepSeek Harness Desktop，再重新打开：
-echo   启动时会播放动画（Q 模式），皮肤背景从第一帧开始。
+echo   **完全退出** DeepSeek Harness Desktop，再重新打开。
+echo   Q/T 模式：启动时播放动画，皮肤背景从第一帧开始。
+echo   T 模式：设置里多出皮肤中心 / 主题全家桶；右下角宠物如需关闭，
+echo           在插件面板里关（本脚本已默认写好禁用行）。
 echo.
-echo   只装了皮肤同步（S）的话：效果在有启动动画时才看得见。
-echo.
-echo   说明 / 卸载 / macOS 命令：见仓库 README  https://github.com/MrKgg3250/dsh-boot-kit
+echo   说明 / 卸载：见仓库 README  https://github.com/MrKgg3250/dsh-boot-kit
 echo.
 pause
 exit /b 0
 
 REM ---------------------------------------------------------------------------
-
 :try_dsh
 if defined DSH_CMD exit /b 0
 if exist "%~1\resources\runtime\cli\bin\dsh.cmd" set "DSH_CMD=%~1\resources\runtime\cli\bin\dsh.cmd"
 exit /b 0
+
+:no_local
+echo   [x] 在 "!HERE!\local" 里没找到 dsh-skin-boot-sync 的安装包。
+echo.
+echo       请把 install.cmd 和 local\ 文件夹**一起**拷贝（两者要同级），
+echo       或直接拷贝整个仓库文件夹后再双击。
+echo.
+pause
+exit /b 1
 
 :no_dsh
 echo   [x] 没找到 DSH（dsh 命令或桌面端安装目录）。

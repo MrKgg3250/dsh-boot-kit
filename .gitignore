@@ -1,5 +1,6 @@
 node_modules/
 *.tgz
+!local/*.tgz
 *.log
 .DS_Store
 Thumbs.db
