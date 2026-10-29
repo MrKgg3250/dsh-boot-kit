@@ -42,6 +42,13 @@ npx dsh-boot-kit
 > dsh plugin --profile desktop add \
 >   https://github.com/MrKgg3250/dsh-boot-kit/releases/download/v1.0.0/dsh-skin-boot-sync-1.0.0.tgz
 > ```
+>
+> ⚠️ **不要**把仓库地址粘进插件管理页的「从 GitHub 安装」：这是个 monorepo，按仓库名
+> 装只会装进 monorepo 根（实测 DSH 提示 `declares no dsh.bundle — installed as a
+> plain dependency`，等于装了个空壳，什么都不发生）。插件请用上面的 tarball 地址，
+> 或等 npm 发布后按包名装。
+>
+> 另外 `desktop` profile 要求桌面端至少打开过一次，刚装好应用的机器先启动一次再装。
 
 只想要皮肤动画同步，不要启动动画和全家桶：
 

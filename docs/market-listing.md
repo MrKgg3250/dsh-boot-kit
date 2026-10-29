@@ -41,18 +41,21 @@ DSH 的市场目录是 `@linxin666/dsh-client-ui-community-plugins` 里的 `comm
 
 ## 提交前的前置条件
 
-首选：**先发布到 npm**（见 [publish.md](publish.md)）。条目里的 `npm` 字段指向包名，
-包不存在的话，装的人会直接失败 —— 这比不收录更糟。
+**发布到 npm 基本是必须的**（见 [publish.md](publish.md)）。条目里的 `npm` 字段指向
+包名，包不存在的话，装的人会直接失败 —— 这比不收录更糟。
 
-还没上 npm 时的替代写法（目录里 148 条有 31 条没有 `npm` 字段，靠 `repo` 安装）：
+不走 npm 的变体**实测走不通**，写在这里防止将来再试：
 
-- 删掉 `"npm": "dsh-skin-boot-sync"` 这一行
-- `"repo"` 指到子包路径：`https://github.com/MrKgg3250/dsh-boot-kit/tree/main/packages/dsh-skin-boot-sync`
-- `description` 开头加一句「从 Release 的 tgz 安装」，并把 tarball 链接放进 README
+- 按 GitHub 仓库 URL 安装（市场「从 GitHub 安装」的路径）：装上的是 **monorepo 根**
+  （`dsh-boot-kit-monorepo`），DSH 明确警告
+  `declares no dsh.bundle — installed as a plain dependency, not a profile layer`
+  —— 空壳，什么都不加载
+- pnpm 的 `#subpath:` 子目录语法：pnpm 11 直接解析失败
+- `repo` 写成 `.../tree/main/packages/dsh-skin-boot-sync` 的形式：**未验证**，dshmarket
+  的发现缓存里确实有 `/tree/` 键的先例，但安装行为没有证据
 
-> 子包路径的写法在 dshmarket 的发现缓存里有先例
-> （`HwFee/HwFee-dsh/tree/master/plugins/genui` 这类键）。**提交 PR 前先在自己
-> 机器上按这个路径装一次**，确认能装再提，别把没验证过的安装方式写进目录。
+结论：要让目录条目可安装，先走 [publish.md](publish.md) 把包发上去；除非有人实测
+`/tree/` 形式可行，否则不要提交没有 `npm` 字段的条目。
 
 ---
 
