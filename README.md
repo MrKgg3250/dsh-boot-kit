@@ -24,6 +24,13 @@ npx dsh-boot-kit
 # 装完再打开应用
 ```
 
+> 还没发布到 npm 之前，`npx` 会找不到包。先 clone 再从仓库跑，行为完全一样：
+>
+> ```bash
+> git clone https://github.com/MrKgg3250/dsh-skin.git
+> node dsh-skin/packages/dsh-boot-kit/bin.mjs --dry-run
+> ```
+
 只想要皮肤动画同步，不要启动动画和全家桶：
 
 ```bash
