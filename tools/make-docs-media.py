@@ -187,9 +187,12 @@ def shoot(browser: str, page: str, png: str, profile_dir: str, height: int) -> N
         f"--screenshot={png}",
         f"file:///{page.replace(os.sep, '/')}",
     ]
-    result = subprocess.run(cmd, capture_output=True, text=True, timeout=90)
+    # Capture bytes, not text: Edge writes UTF-8 while Python's default codec on
+    # Windows is GBK, and decoding eagerly throws before we can report anything.
+    result = subprocess.run(cmd, capture_output=True, timeout=90)
     if not os.path.exists(png):
-        raise SystemExit(f"browser produced no screenshot\n{result.stdout}\n{result.stderr}")
+        detail = (result.stdout + result.stderr).decode("utf-8", "replace")
+        raise SystemExit(f"browser produced no screenshot\n{detail}")
 
 
 def main() -> int:

@@ -24,12 +24,12 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/MrKgg3250/dsh-skin.git",
+    "url": "git+https://github.com/MrKgg3250/dsh-boot-kit.git",
     "directory": "packages/dsh-boot-kit"
   },
-  "homepage": "https://github.com/MrKgg3250/dsh-skin/tree/main/packages/dsh-boot-kit#readme",
+  "homepage": "https://github.com/MrKgg3250/dsh-boot-kit/tree/main/packages/dsh-boot-kit#readme",
   "bugs": {
-    "url": "https://github.com/MrKgg3250/dsh-skin/issues"
+    "url": "https://github.com/MrKgg3250/dsh-boot-kit/issues"
   },
   "scripts": {
     "test": "node --test"

@@ -8,11 +8,11 @@
   "packageManager": "pnpm@11.28.5",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/MrKgg3250/dsh-skin.git"
+    "url": "git+https://github.com/MrKgg3250/dsh-boot-kit.git"
   },
-  "homepage": "https://github.com/MrKgg3250/dsh-skin#readme",
+  "homepage": "https://github.com/MrKgg3250/dsh-boot-kit#readme",
   "bugs": {
-    "url": "https://github.com/MrKgg3250/dsh-skin/issues"
+    "url": "https://github.com/MrKgg3250/dsh-boot-kit/issues"
   },
   "engines": {
     "node": "^22.19.0 || >=24.0.0"

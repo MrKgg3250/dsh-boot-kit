@@ -29,12 +29,12 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/MrKgg3250/dsh-skin.git",
+    "url": "git+https://github.com/MrKgg3250/dsh-boot-kit.git",
     "directory": "packages/dsh-skin-boot-sync"
   },
-  "homepage": "https://github.com/MrKgg3250/dsh-skin/tree/main/packages/dsh-skin-boot-sync#readme",
+  "homepage": "https://github.com/MrKgg3250/dsh-boot-kit/tree/main/packages/dsh-skin-boot-sync#readme",
   "bugs": {
-    "url": "https://github.com/MrKgg3250/dsh-skin/issues"
+    "url": "https://github.com/MrKgg3250/dsh-boot-kit/issues"
   },
   "dsh": {
     "engines": {

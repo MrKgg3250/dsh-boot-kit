@@ -1,13 +1,18 @@
 # dsh-boot-kit
 
+![dsh-boot-kit：一条命令换掉 DSH 的开机画面](docs/media/cover.png)
+
+[![ci](https://github.com/MrKgg3250/dsh-boot-kit/actions/workflows/ci.yml/badge.svg)](https://github.com/MrKgg3250/dsh-boot-kit/actions/workflows/ci.yml)
+[![price](docs/media/badge-price.svg)](https://github.com/MrKgg3250/dsh-boot-kit)
+[![license](docs/media/badge-license.svg)](LICENSE)
+[![dsh](docs/media/badge-dsh.svg)](docs/compatibility.md)
+
 把「启动动画 + 皮肤背景从头播 + 关掉右下角宠物/余额挂件」这套 DSH 启动体验，
-做成一条命令装好。
+做成一条命令装好。**免费、MIT、无遥测。**
 
 > One command to install a DSH startup animation, make the skin backdrop start on
 > its first frame when the curtain lifts, and switch off the floating pet and
 > balance widget.
-
-DeepSeek Harness 0.2.1-rc.3 · Windows / macOS / Linux · MIT
 
 ![dsh-boot-kit 的 dry-run 输出](docs/media/install-dry-run.gif)
 
@@ -27,7 +32,7 @@ npx dsh-boot-kit
 > 还没发布到 npm 之前，`npx` 会找不到包。先 clone 再从仓库跑，行为完全一样：
 >
 > ```bash
-> git clone https://github.com/MrKgg3250/dsh-skin.git
+> git clone https://github.com/MrKgg3250/dsh-boot-kit.git
 > node dsh-skin/packages/dsh-boot-kit/bin.mjs --dry-run
 > ```
 
@@ -106,16 +111,21 @@ docs/
   install.md            安装图解（含 GIF）
   pitfalls.md           四个坑的复盘（含实测证据）
   compatibility.md      版本矩阵与非官方契约
-  media/                文档配图，由 tools/make-docs-media.py 生成
+  media/                封面、徽章、截图，全部由 tools/ 下的脚本生成
 tools/
-  make-docs-media.py    从真实输出重生成 docs/media（需要 Edge/Chrome + Pillow）
+  make-brand.py         生成封面 PNG 与自托管徽章 SVG（需要 Edge/Chrome）
+  make-docs-media.py    从真实输出重生成安装截图/GIF（需要 Edge/Chrome + Pillow）
 ```
 
 ## 开发
 
 ```bash
-node --test packages/dsh-skin-boot-sync/test/
-node --test packages/dsh-boot-kit/test/
+# 全部测试（node --test 默认发现，别传目录——见 docs/pitfalls.md）
+node --test
+
+# 单个包
+node --test "packages/dsh-skin-boot-sync/test/*.test.mjs"
+node --test "packages/dsh-boot-kit/test/*.test.mjs"
 
 # 用本仓库的插件源码装（不依赖 npm 发布）
 node packages/dsh-boot-kit/bin.mjs --source local --repo-root . --dry-run
@@ -124,6 +134,7 @@ node packages/dsh-boot-kit/bin.mjs --source local --repo-root . --dry-run
 文档配图不要手改，改完 CLI 输出后重跑：
 
 ```bash
+python tools/make-brand.py
 python tools/make-docs-media.py --input transcript.txt
 ```
 
