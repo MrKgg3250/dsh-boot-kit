@@ -24,22 +24,21 @@
 
 ### Windows：双击安装（不需要会用终端）
 
-把**整个仓库文件夹**拷到目标机器（`install.cmd` 和 `local\` 必须在一起），双击
-`install.cmd`，按提示选：
+把这三个文件放进**同一个文件夹**，双击 `install.cmd`：
 
-- **Q**（推荐）：启动动画 + 皮肤同步 —— **完全本地，不联网**
-- **T**：全套，含主题全家桶（`@linxin666/dsh-web-all`）和关掉右下角宠物 ——
-  主题来自 npm，需要能访问 registry（国内配 npmmirror 镜像即可）
-- **S**：只装皮肤同步（已经有启动动画的话）
+- `install.cmd`
+- `dsh-skin-boot-sync-1.0.0.tgz`
+- `dsh-startup-screen-1.2.0.tgz`
+
+（拷贝整个仓库文件夹也行 —— 脚本会先看自己旁边、再看 `local\` 子目录。）
 
 装完**完全退出 DeepSeek Harness Desktop，再重新打开**。
 
-脚本自动找 DSH —— 会从正在运行的桌面端进程反推安装目录，所以没有全局 `dsh`
-命令也能装。web / desktop 两个 profile 都会自动检测。
+**一条命令装全部**：启动动画 + 皮肤背景从第一帧开始 + 主题全家桶（自动关掉右下角
+宠物）。主题来自 npm，网络不通时自动降级为只装前两项 —— 联网后再双击一次即可补上。
 
-> ⚠️ **如果你之前从 Release 下载过 `install.cmd`，删掉换用仓库里这份**：旧版把包名
-> 装成了 GitHub URL，之后每次安装都会去请求 github.com（网络一抖就卡在重试里）。
-> 新版全程走本地文件，并且会**自动清理**旧版留下的网络依赖 —— 旧机器双击一次即自愈。
+脚本自动找 DSH（从正在运行的桌面端进程反推安装目录，没有全局 `dsh` 命令也能装），
+web / desktop 两个 profile 都会自动检测，并自动清理旧安装方式留下的网络依赖。
 
 装之前请先把桌面端**完全退出**（desktop profile 的 `package.json` 由桌面端进程锁管理）。
 
@@ -144,11 +143,11 @@ npx dsh-boot-kit --revert
 ## 仓库结构
 
 ```
-install.cmd             Windows 一键安装（双击即可，自动找 DSH、自动装）
-local/                  随工具分发的安装包（插件 + 启动动画的 tgz），安装全程离线
+install.cmd             一键安装（双击装全部；主题装不上时自动降级为本地两项）
+local/                  随工具分发的安装包（插件 + 启动动画的 tgz），安装离线可用
 packages/
   dsh-skin-boot-sync/   运行时插件：揭幕时把皮肤背景视频拨回第一帧（5.7 KB，零依赖）
-  dsh-boot-kit/         安装器 CLI：七步流水线 + 校验 + 回滚备份（在线分发用）
+  dsh-boot-kit/         安装器 CLI：七步流水线 + 校验 + 回滚备份（进阶用法）
 docs/
   install.md            安装图解（含 GIF）
   pitfalls.md           四个坑的复盘（含实测证据）
