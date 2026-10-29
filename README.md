@@ -111,6 +111,9 @@ docs/
   install.md            安装图解（含 GIF）
   pitfalls.md           四个坑的复盘（含实测证据）
   compatibility.md      版本矩阵与非官方契约
+  publish.md            发布到 npm 的清单与命令
+  market-listing.md     收录进市场目录的条目与 PR 正文
+  upstream-skin-center.md  给上游的提案：让皮肤背景在揭幕时从头播
   media/                封面、徽章、截图，全部由 tools/ 下的脚本生成
 tools/
   make-brand.py         生成封面 PNG 与自托管徽章 SVG（需要 Edge/Chrome）
