@@ -1,0 +1,28 @@
+{
+  "name": "dsh-boot-kit",
+  "version": "0.1.0",
+  "description": "Installs the DSH startup animation and the skin backdrop sync, and repairs the profile it writes to.",
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "dsh-boot-kit": "bin.mjs"
+  },
+  "files": [
+    "bin.mjs",
+    "lib",
+    "README.md"
+  ],
+  "keywords": [
+    "dsh",
+    "deepseek-harness",
+    "installer",
+    "startup",
+    "skin"
+  ],
+  "engines": {
+    "node": "^22.19.0 || >=24.0.0"
+  },
+  "scripts": {
+    "test": "node --test test/"
+  }
+}

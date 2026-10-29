@@ -1,0 +1,17 @@
+{
+  "name": "dsh-boot-kit-monorepo",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Boot experience kit for DeepSeek Harness: a startup animation, a skin backdrop that starts on frame 1, and an installer that repairs the profile it writes to.",
+  "license": "MIT",
+  "type": "module",
+  "packageManager": "pnpm@11.28.5",
+  "engines": {
+    "node": "^22.19.0 || >=24.0.0"
+  },
+  "scripts": {
+    "test": "node --test packages/dsh-skin-boot-sync/test/ packages/dsh-boot-kit/test/",
+    "test:plugin": "node --test packages/dsh-skin-boot-sync/test/",
+    "test:cli": "node --test packages/dsh-boot-kit/test/"
+  }
+}

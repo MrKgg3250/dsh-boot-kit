@@ -1,0 +1,308 @@
+/**
+ * The seven steps. Each one is idempotent: running the whole pipeline twice on
+ * the same profile must produce no further changes, and must never leave a row
+ * behind that nothing owns.
+ */
+import path from 'node:path'
+import { writeFileSync, copyFileSync, existsSync } from 'node:fs'
+
+import {
+  appendDisableRow,
+  collectEntryIds,
+  ensureStrictDepBuildsFalse,
+  missingBundleRows,
+  readBundles,
+} from './manifests.mjs'
+import {
+  inspectPackage,
+  readJson,
+  readText,
+  runCapture,
+  writeJson,
+  writeText,
+} from './context.mjs'
+import { SKIN_BOOT_SYNC, STARTUP_SCREEN } from './specs.mjs'
+
+export class KitError extends Error {
+  constructor(code, message, hint) {
+    super(message)
+    this.code = code
+    this.hint = hint
+  }
+}
+
+/** Names this plan is responsible for. */
+export function plannedNames(plan) {
+  const names = new Set([SKIN_BOOT_SYNC.name])
+  if (plan.npm.includes('@linxin666/dsh-web-all')) names.add('@linxin666/dsh-web-all')
+  if (plan.npm.includes('dsh-whale-widget')) names.add('dsh-whale-widget')
+  if (plan.github.length > 0) names.add(STARTUP_SCREEN.name)
+  return [...names]
+}
+
+// ── 1. preflight ────────────────────────────────────────────────────────────
+export async function preflight(ctx) {
+  const { paths } = ctx
+  const report = { ok: true, notes: [] }
+
+  if (!existsSync(paths.manifestPath)) {
+    throw new KitError(
+      'E_NO_PROFILE',
+      `no profile manifest at ${paths.manifestPath}`,
+      'Open DeepSeek Harness once so it initializes its profile, then quit it and retry. Use --profile to pick another profile.',
+    )
+  }
+
+  if (ctx.desktopRunning === true && !ctx.force) {
+    throw new KitError(
+      'E_PROFILE_LOCK',
+      'DeepSeek Harness is running',
+      'The desktop app owns its profile package.json. Fully quit it, then retry. Pass --force to install anyway (the app may overwrite the manifest on exit).',
+    )
+  }
+  if (ctx.desktopRunning === true) report.notes.push('desktop app is running — installing anyway (--force)')
+
+  if (ctx.dshVersion === null) {
+    report.notes.push('could not determine the DSH version; continuing')
+  } else if (ctx.versionTooOld) {
+    throw new KitError(
+      'E_DSH_VERSION',
+      `DSH ${ctx.dshVersion} is older than the required ${ctx.minDsh}`,
+      'Upgrade DeepSeek Harness first. The skin and startup plugins used here both require it.',
+    )
+  }
+
+  return report
+}
+
+// ── 2. pnpm flags ───────────────────────────────────────────────────────────
+export function writePnpmFlags(ctx) {
+  const file = ctx.paths.workspaceYamlPath
+  const before = readText(file, '')
+  const result = ensureStrictDepBuildsFalse(before)
+
+  if (result.conflict) {
+    ctx.warn(
+      'strictDepBuilds is explicitly true in pnpm-workspace.yaml. ' +
+        'The install will fail on unapproved build scripts. Set it to false to continue.',
+    )
+    return { changed: false }
+  }
+  if (!result.changed) return { changed: false }
+
+  ctx.write(file, result.text)
+  return { changed: true, note: 'strictDepBuilds: false' }
+}
+
+// ── 3. install ──────────────────────────────────────────────────────────────
+export async function downloadStartup(ctx, plan) {
+  if (plan.github.length === 0) return null
+  const target = path.join(ctx.paths.pluginsDir, STARTUP_SCREEN.asset)
+  if (existsSync(target)) {
+    ctx.log(`startup tarball already present: ${target}`)
+    return target
+  }
+  if (ctx.dryRun) {
+    ctx.log(`[dry-run] would download ${STARTUP_SCREEN.url}`)
+    return target
+  }
+
+  const response = await fetch(STARTUP_SCREEN.url, { redirect: 'follow' })
+  if (!response.ok) {
+    throw new KitError(
+      'E_GITHUB_DOWNLOAD',
+      `GET ${STARTUP_SCREEN.url} -> HTTP ${response.status}`,
+      'Download that tarball by hand, put it in the plugins directory, and rerun.',
+    )
+  }
+  const buffer = Buffer.from(await response.arrayBuffer())
+  ctx.writeBinary(target, buffer)
+  ctx.log(`downloaded ${STARTUP_SCREEN.name}@${STARTUP_SCREEN.version} (${Math.round(buffer.length / 1024)} KB)`)
+  return target
+}
+
+export async function install(ctx, plan, startupTarball) {
+  const specs = [...plan.npm, ...plan.local]
+  if (startupTarball) specs.push(startupTarball)
+  if (specs.length === 0) return { changed: false }
+
+  const args = ['plugin', '--profile', ctx.paths.profile, 'add', ...specs]
+  if (ctx.dryRun) {
+    ctx.log(`[dry-run] ${ctx.cli} ${args.join(' ')}`)
+    return { changed: true, note: 'planned' }
+  }
+
+  const first = await ctx.run(ctx.cli, args)
+  if (first.ok) {
+    ctx.log(`installed: ${specs.length} package(s)`)
+    return { changed: true }
+  }
+
+  const output = `${first.stdout}\n${first.stderr}`
+  if (/ERR_PNPM_IGNORED_BUILDS|approve-builds/i.test(output)) {
+    // The flags step should have prevented this. If the user's file said
+    // `strictDepBuilds: true`, step 2 reported it; retry once in case the write
+    // landed between the check and the install.
+    ctx.warn('pnpm rejected unapproved build scripts — rewriting the pnpm flags and retrying once')
+    const rewritten = ensureStrictDepBuildsFalse(readText(ctx.paths.workspaceYamlPath, ''))
+    ctx.write(ctx.paths.workspaceYamlPath, rewritten.text)
+    const retry = await ctx.run(ctx.cli, args)
+    if (retry.ok) {
+      ctx.log('installed on retry')
+      return { changed: true, note: 'retried after build-script error' }
+    }
+    throw new KitError(
+      'E_BUILD_SCRIPTS',
+      'pnpm still refuses the build scripts',
+      'Run `pnpm approve-builds` in the profile directory, then rerun this installer.',
+    )
+  }
+
+  if (/ERR_PNPM_NO_MATCHING_VERSION|404 Not Found|ETARGET/i.test(output)) {
+    throw new KitError('E_PACKAGE_NOT_FOUND', 'a package could not be resolved', output.trim().split('\n').slice(-6).join('\n'))
+  }
+
+  throw new KitError('E_INSTALL_FAILED', 'dsh plugin add failed', output.trim().split('\n').slice(-8).join('\n'))
+}
+
+// ── 4. reconcile ────────────────────────────────────────────────────────────
+export function reconcile(ctx) {
+  const manifest = readJson(ctx.paths.manifestPath, null)
+  if (!manifest) throw new KitError('E_NO_PROFILE', 'profile package.json is unreadable')
+
+  // Only the packages this run is responsible for. Enabling every dependency
+  // that happens to ship a bundle patch would switch on plugins the user never
+  // asked for.
+  const missing = missingBundleRows(manifest, plannedNames(ctx.plan), (name) =>
+    inspectPackage(ctx.paths.nodeModules, name),
+  )
+  if (missing.length === 0) {
+    ctx.log('bundle list already consistent')
+    return { changed: false }
+  }
+
+  if (!manifest.dsh) manifest.dsh = {}
+  if (!manifest.dsh.profile) manifest.dsh.profile = {}
+  const bundles = readBundles(manifest)
+  const next = bundles.concat(missing)
+  manifest.dsh.profile.bundles = next
+
+  if (ctx.dryRun) {
+    ctx.log(`[dry-run] would register in dsh.profile.bundles: ${missing.join(', ')}`)
+    return { changed: true, note: missing.join(', ') }
+  }
+  ctx.backup(ctx.paths.manifestPath)
+  ctx.writeJson(ctx.paths.manifestPath, manifest)
+  ctx.log(`registered in dsh.profile.bundles: ${missing.join(', ')}`)
+  return { changed: true, note: missing.join(', ') }
+}
+
+// ── 5. patch user layer ─────────────────────────────────────────────────────
+export function patchUserLayer(ctx, plan) {
+  const file = ctx.paths.userPatchPath
+  let text = readText(file, '')
+  const applied = []
+
+  for (const row of plan.disables) {
+    // Only switch off a row whose owning package is actually installed: a
+    // `disabled` row for an id nothing inserts is noise the loader has to own.
+    if (!inspectPackage(ctx.paths.nodeModules, row.pkg)) continue
+    const result = appendDisableRow(text, row.id)
+    if (result.changed) applied.push(row.id)
+    text = result.text
+  }
+
+  if (applied.length === 0) {
+    ctx.log('user layer already carries the opt-outs')
+    return { changed: false }
+  }
+  if (ctx.dryRun) {
+    ctx.log(`[dry-run] would disable: ${applied.join(', ')}`)
+    return { changed: true, note: applied.join(', ') }
+  }
+  ctx.backup(file)
+  ctx.write(file, text)
+  for (const id of applied) ctx.log(`disabled: ${id}`)
+  return { changed: true, note: applied.join(', ') }
+}
+
+// ── 6. verify ───────────────────────────────────────────────────────────────
+export function verify(ctx) {
+  const errors = []
+  const warnings = []
+  const manifest = readJson(ctx.paths.manifestPath, null)
+  const bundles = readBundles(manifest)
+  const names = plannedNames(ctx.plan)
+
+  for (const name of names) {
+    if (!bundles.includes(name)) {
+      errors.push(`${name} is installed but missing from dsh.profile.bundles — it will not load`)
+      continue
+    }
+    const info = inspectPackage(ctx.paths.nodeModules, name)
+    if (!info) {
+      errors.push(`${name} is in dsh.profile.bundles but not resolvable from node_modules`)
+      continue
+    }
+    if (info.hasBundlePatch && !existsSync(path.join(info.dir, ...info.patchRel.split('/')))) {
+      errors.push(`${name} declares dsh.bundle.patch but ${info.patchRel} is missing`)
+    }
+  }
+
+  // Duplicate loader entry ids across layers make the next boot fail outright.
+  const sources = []
+  for (const name of bundles) {
+    const info = inspectPackage(ctx.paths.nodeModules, name)
+    if (!info || !info.hasBundlePatch) continue
+    const patchFile = path.join(info.dir, ...info.patchRel.split('/'))
+    sources.push({ name, text: readText(patchFile, '') })
+  }
+  sources.push({ name: '<user layer>', text: readText(ctx.paths.userPatchPath, '') })
+
+  const { duplicates } = collectEntryIds(sources)
+  for (const hit of duplicates) {
+    warnings.push(`loader id "${hit.id}" is inserted by more than one layer: ${hit.owners.join(', ')}`)
+  }
+
+  return { errors, warnings }
+}
+
+// ── 7. report ───────────────────────────────────────────────────────────────
+export function report(ctx, outcomes) {
+  const lines = []
+  lines.push('')
+  lines.push('  done.')
+  for (const key of Object.keys(outcomes)) {
+    const value = outcomes[key]
+    if (value && value.changed) lines.push(`    ~ ${key}: ${value.note || 'updated'}`)
+    else lines.push(`    · ${key}: unchanged`)
+  }
+  lines.push('')
+  lines.push('  Now fully quit DeepSeek Harness and open it again.')
+  lines.push('  Plugins are assembled at boot; a page refresh will not do it.')
+  lines.push('')
+  lines.push('  What to expect:')
+  lines.push(`    · profile ${ctx.paths.profile} at ${ctx.paths.profileDir}`)
+  lines.push('    · the startup animation plays, then the skin backdrop starts on frame 1')
+  if (ctx.plan.disables.length > 0) {
+    lines.push('    · opt-outs are in cordis.patch.yml — delete those rows to undo them')
+  }
+  lines.push('')
+  ctx.log(lines.join('\n'))
+}
+
+/** Copy a file next to itself before an edit, so `--revert` has something to work with. */
+export function backup(file) {
+  if (!existsSync(file)) return null
+  const stamp = new Date().toISOString().replace(/[:.]/g, '-')
+  const target = `${file}.bak-${stamp}`
+  copyFileSync(file, target)
+  return target
+}
+
+export function writeBinary(ctx, file, buffer) {
+  if (ctx.dryRun) return
+  writeFileSync(file, buffer)
+}
+
+export { writeText }

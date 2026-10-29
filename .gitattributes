@@ -1,0 +1,8 @@
+﻿# Keep the tree LF everywhere: this project is published and used on all three
+# platforms, and a CRLF checkout makes every diff noisy.
+* text=auto eol=lf
+
+*.png binary
+*.jpg binary
+*.mp4 binary
+*.tgz binary

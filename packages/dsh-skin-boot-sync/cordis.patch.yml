@@ -1,0 +1,9 @@
+# dsh-skin-boot-sync — bundle patch.
+#
+# The host half is deliberately empty, so this plugin needs exactly one loader
+# row. Its browser half is assembled from the `dsh.client` block in
+# package.json (the host reads that; nothing here repeats it).
+
+- insert:
+    - id: dsh-skin-boot-sync
+      name: dsh-skin-boot-sync

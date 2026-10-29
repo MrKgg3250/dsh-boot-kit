@@ -1,0 +1,26 @@
+dsh-boot-kit
+============
+
+This repository contains no third-party code or assets. At install time it
+declares or downloads the packages listed below; each keeps its own license.
+
+Third-party components referenced by the installer
+--------------------------------------------------
+
+dsh-startup-screen
+  MIT · https://github.com/6shenhonghong9/dsh-startup-screen
+  Downloaded as a release tarball from GitHub (not redistributed here).
+
+@linxin666/dsh-web-all  (and its 24 transitive @linxin666/* packages)
+  Apache-2.0 · https://github.com/zhu1090093659/dsh-web
+  Declared as an npm dependency only.
+
+dsh-whale-widget
+  MIT · https://github.com/MeteorNOX/DeepSeek-Balance-Whale-Widget
+  Declared as an npm dependency only. Disabled by default by this installer.
+
+Skins
+  Skins are downloaded by the user from the DSH skin center. This repository
+  ships and references NO skin assets. In particular the `whale-fantasy` skin
+  is CC BY-NC-SA 4.0 (non-commercial, share-alike) and must not be mirrored,
+  bundled, or redistributed by this project.
