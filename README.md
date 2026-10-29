@@ -22,18 +22,33 @@
 
 ## 快速开始
 
-### 只要动画同步（零 npm，一条命令）
+### Windows：双击安装（不需要会用终端）
 
-装之前**完全退出 DeepSeek Harness**（桌面端会占用 profile 的 package.json）：
+1. 下载 [install.cmd](https://github.com/MrKgg3250/dsh-boot-kit/releases/latest/download/install.cmd)
+2. 双击它，选 `Q`（推荐：启动动画 + 皮肤同步）或 `S`（只装皮肤同步）
+3. 装完**完全退出 DeepSeek Harness Desktop，再重新打开**
+
+脚本自动找 DSH —— 会从正在运行的桌面端进程反推安装目录，所以没有全局 `dsh`
+命令也能装。web / desktop 两个 profile 都会自动检测。
+
+装之前请先把桌面端**完全退出**（desktop profile 的 `package.json` 由桌面端进程锁管理）。
+
+### macOS / Linux / 想自己敲命令
+
+终端在哪里：
+
+- **macOS**：访达 → 应用程序 → 实用工具 → **终端**
+- **Windows**：开始菜单搜 **PowerShell**（命令一样能用）
+
+装之前**完全退出 DeepSeek Harness**：
 
 ```bash
 dsh plugin --profile desktop add \
   https://github.com/MrKgg3250/dsh-boot-kit/releases/download/v1.0.0/dsh-skin-boot-sync-1.0.0.tgz
 ```
 
-装完再打开应用。`dsh` 不在 PATH 时用完整路径
-`<安装目录>\resources\runtime\cli\bin\dsh.cmd`；`desktop` profile 要求桌面端至少
-打开过一次，刚装好应用的机器先启动一次再装。
+`dsh` 不在 PATH 时用完整路径 `<安装目录>\resources\runtime\cli\bin\dsh.cmd`；
+`desktop` profile 要求桌面端至少打开过一次，刚装好应用的机器先启动一次再装。
 
 ### 全套安装（启动动画 + 皮肤同步 + 关掉宠物/挂件）
 
@@ -119,6 +134,7 @@ npx dsh-boot-kit --revert
 ## 仓库结构
 
 ```
+install.cmd             Windows 一键安装（双击即可，自动找 DSH、自动装）
 packages/
   dsh-skin-boot-sync/   运行时插件：揭幕时把皮肤背景视频拨回第一帧（5.7 KB，零依赖）
   dsh-boot-kit/         安装器 CLI：七步流水线 + 校验 + 回滚备份

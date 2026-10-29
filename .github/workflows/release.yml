@@ -71,6 +71,6 @@ jobs:
           # DRAFT, and draft assets 404 for everyone without write access. A
           # re-published tag must therefore never leave the old object behind.
           gh release delete "$TAG" --yes 2>/dev/null || true
-          gh release create "$TAG" dist/*.tgz \
+          gh release create "$TAG" dist/*.tgz install.cmd \
             --title "$TAG · plugin v${{ steps.v.outputs.plugin }} · cli v${{ steps.v.outputs.cli }}" \
             --generate-notes
