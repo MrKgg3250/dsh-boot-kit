@@ -10,3 +10,8 @@
 # cmd/bat are executed by cmd.exe, which parses LF files incorrectly.
 *.cmd text eol=crlf
 *.bat text eol=crlf
+
+# The two PowerShell entry scripts carry a UTF-8 BOM that Windows PowerShell 5.1
+# needs to parse their Chinese text; any EOL/BOM normalization would break them.
+制作插件包.ps1 -text
+导入.ps1 -text
