@@ -26,6 +26,11 @@ echo ==========================================
 if not exist "%PROF%\package.json" goto no_prof
 echo   profile: !PROF!
 
+REM 应用运行时不能修：活着的应用会在修复后重写 patch，
+REM 并丢掉「已摘除插件」的设置（那次事故就是这么来的）。
+powershell -NoProfile -Command "if (Get-Process 'DeepSeek Harness' -ErrorAction SilentlyContinue) { exit 0 } else { exit 1 }"
+if not errorlevel 1 goto app_running
+
 REM --- 1) 诊断（只读）--------------------------------------------------------
 echo.
 echo --- diagnose: package.json ---
@@ -46,6 +51,7 @@ echo   [ok] cordis.patch.yml moved aside (backup: cordis.patch.yml.bak)
 :skip_patch
 
 REM --- 3) 摘掉三个包（bundles + dependencies），只改文件不跑 pnpm -------------
+copy /y "%PROF%\package.json" "%PROF%\package.json.bak" >nul 2>&1
 powershell -NoProfile -Command "try { $f = '%PROF%\package.json'; $j = Get-Content -LiteralPath $f -Raw | ConvertFrom-Json; $drop = @('dsh-startup-screen','dsh-skin-boot-sync','@linxin666/dsh-web-all'); $changed = $false; if ($j.PSObject.Properties['dsh'] -and $j.dsh -and $j.dsh.profile -and $j.dsh.profile.PSObject.Properties['bundles']) { $keep = @($j.dsh.profile.bundles | Where-Object { $drop -notcontains $_ }); if ($keep.Count -ne @($j.dsh.profile.bundles).Count) { $j.dsh.profile.bundles = $keep; $changed = $true } }; if ($j.PSObject.Properties['dependencies']) { foreach ($n in $drop) { if ($j.dependencies.PSObject.Properties[$n]) { $j.dependencies.PSObject.Properties.Remove($n); $changed = $true } } }; if ($changed) { $json = ConvertTo-Json -InputObject $j -Depth 10; [IO.File]::WriteAllText($f, $json, (New-Object Text.UTF8Encoding($false))); Write-Output ('REPAIRED: dropped our three packages from package.json') } else { Write-Output ('NOTHING TO REPAIR: package.json clean') }; exit 0 } catch { Write-Output ('REPAIR FAILED: ' + $_.Exception.Message); exit 1 }"
 if errorlevel 1 goto repair_failed
 
@@ -54,9 +60,11 @@ echo --- after repair: bundle list ---
 powershell -NoProfile -Command "try { $j = Get-Content -LiteralPath '%PROF%\package.json' -Raw | ConvertFrom-Json; $b=@(); if ($j.PSObject.Properties['dsh'] -and $j.dsh -and $j.dsh.profile) { $b=@($j.dsh.profile.bundles) }; Write-Output ('bundles : ' + ($b -join ', ')) } catch { Write-Output ('PARSE FAILED: ' + $_.Exception.Message) }"
 
 echo.
-echo ==========================================
-echo   修复完成
-echo ==========================================
+echo   修复完成。本次改动：
+echo     - cordis.patch.yml 移开（备份 .bak 和 .disabled）
+echo     - package.json 去掉三个包（备份 .bak）
+echo   要还原任何一处，用对应备份文件覆盖回去即可。
+echo.
 echo   现在完全退出 DeepSeek Harness Desktop，再打开。
 echo   如果能正常启动，把上面 --- diagnose --- 的输出发回来。
 echo   如果仍然崩溃，把新的 crash log 发回来。
@@ -65,6 +73,16 @@ pause
 exit /b 0
 
 REM ===========================================================================
+:app_running
+echo.
+echo   [x] DeepSeek Harness 正在运行，不能修。
+echo       请先完全退出应用，再重新运行本文件。
+echo       原因：运行中的应用会在修复后重写 patch，
+echo       并丢掉「已摘除插件」的设置，等于白修。
+echo.
+pause
+exit /b 1
+
 :parse_failed
 echo.
 echo   [x] package.json 解析失败 - 文件本身坏了，没有做任何修改。
