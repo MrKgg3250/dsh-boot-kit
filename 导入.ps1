@@ -74,8 +74,22 @@ Write-Host '  [4/4] 复制插件源码到 ~/.dsh/plugins ...'
 New-Item -ItemType Directory -Path (Join-Path $dshHome 'plugins') -Force | Out-Null
 Copy-Item -Path (Join-Path $pkg 'plugins\*') -Destination (Join-Path $dshHome 'plugins') -Recurse -Force
 
+Write-Host '  [5/5] 恢复皮肤（已下载皮肤 + 默认皮肤）...'
+$homeBak = Join-Path $dshHome ".backup-$stamp"
+New-Item -ItemType Directory -Path $homeBak -Force | Out-Null
+if (Test-Path (Join-Path $dshHome 'skin-center-active.json')) {
+    Move-Item (Join-Path $dshHome 'skin-center-active.json') (Join-Path $homeBak 'skin-center-active.json') -Force
+}
+if (Test-Path (Join-Path $pkg 'skins')) {
+    New-Item -ItemType Directory -Path (Join-Path $dshHome 'skins') -Force | Out-Null
+    Copy-Item -Path (Join-Path $pkg 'skins\*') -Destination (Join-Path $dshHome 'skins') -Recurse -Force
+}
+if (Test-Path (Join-Path $pkg 'skin-center-active.json')) {
+    Copy-Item (Join-Path $pkg 'skin-center-active.json') (Join-Path $dshHome 'skin-center-active.json') -Force
+}
+
 Write-Host ''
 Write-Host '  导入完成。'
 Write-Host '  完全退出 DeepSeek Harness Desktop，再重新打开。'
-Write-Host '  如需还原，把 .backup-' + $stamp + ' 里的内容移回原位即可。'
+Write-Host '  如需还原：profile 配置在 profile\.backup-' + $stamp + '，皮肤状态在 ' + $homeBak + '。'
 Write-Host ''

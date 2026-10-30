@@ -59,6 +59,22 @@ if (Test-Path $patch) {
 Write-Host '  [4/4] 复制插件源码（link:/file: 依赖指向的目标）...'
 Copy-Item -Path (Join-Path $dshHome 'plugins\*') -Destination (Join-Path $out 'plugins') -Recurse -Force
 
+Write-Host '  [5/5] 打包皮肤（内置 + 已下载皮肤，默认 鲸鱼娘·未至之境）...'
+if (Test-Path (Join-Path $dshHome 'skins')) {
+    Copy-Item -Path (Join-Path $dshHome 'skins') -Destination (Join-Path $out 'skins') -Recurse -Force
+} else {
+    New-Item -ItemType Directory -Path (Join-Path $out 'skins') -Force | Out-Null
+}
+$activeFile = Join-Path $dshHome 'skin-center-active.json'
+$activeOut  = Join-Path $out 'skin-center-active.json'
+$activeJson = $null
+if (Test-Path $activeFile) { $activeJson = Get-Content -LiteralPath $activeFile -Raw | ConvertFrom-Json }
+if (-not $activeJson) {
+    $activeJson = [pscustomobject]@{ active = $null; initialized = $true; background = [pscustomobject]@{} }
+}
+$activeJson.active = 'whale-fantasy'
+[IO.File]::WriteAllText($activeOut, ($activeJson | ConvertTo-Json -Depth 10) + "`r`n", (New-Object Text.UTF8Encoding($false)))
+
 # 把源 home（例如 C:/Users/admin/.dsh）写进说明，导入时用整段替换做路径重写
 $srcHomeFwd = $dshHome -replace '\\','/'
 Set-Content -Path (Join-Path $out 'SRC_HOME.txt') -Value $srcHomeFwd -Encoding ascii
