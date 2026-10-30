@@ -42,6 +42,18 @@ web / desktop 两个 profile 都会自动检测，并自动清理旧安装方式
 
 装之前请先把桌面端**完全退出**（desktop profile 的 `package.json` 由桌面端进程锁管理）。
 
+### 便携包（离线分享，不含账号数据）
+
+把「已装好的插件」打成 zip，别人拷过去双击导入即可，全程不联网、不带账号/日志：
+
+1. 在装好的机器上**完全退出** DeepSeek Harness，双击 `制作插件包.cmd` → 生成 `dsh-plugins-bundle` 文件夹
+2. 把 `dsh-plugins-bundle` + `导入.cmd` + `导入.ps1` 一起压缩成 zip 分发
+3. 目标机器：先装并打开一次 DeepSeek Harness（版本一致），**完全退出**后双击 `导入.cmd`
+
+打包只含插件相关文件（`node_modules`、精简后的 `cordis.patch.yml`、插件源码），
+**不含**应用数据 / 会话 / 凭据 / 日志 / 缓存。`导入` 会自动备份、合并 bundles，
+并把 `link:`/`file:` 里的源机器路径重写为目标机器路径。
+
 ### macOS / Linux / 想自己敲命令
 
 终端在哪里：
